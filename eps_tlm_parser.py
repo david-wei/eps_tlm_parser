@@ -83,6 +83,7 @@ class EpsTlmData:
 			elif datatype == EpsTlmData.DATATYPE.uint64 or datatype == EpsTlmData.DATATYPE.int64 or datatype == EpsTlmData.DATATYPE.float64:
 				return 8
 
+		WIDTH = uint8
 		TIME = uint64
 		DEVICE = uint8
 		SOURCE = uint8
@@ -94,19 +95,19 @@ class EpsTlmData:
 			elif type == EpsTlmData.TYPE.CURRENT:		return EpsTlmData.DATATYPE.float32
 			elif type == EpsTlmData.TYPE.CURRENTB:		return EpsTlmData.DATATYPE.float32
 			elif type == EpsTlmData.TYPE.TEMPERATURE:	return EpsTlmData.DATATYPE.float32
-			elif type == EpsTlmData.TYPE.MANRESET:		return EpsTlmData.DATATYPE.uint8
-			elif type == EpsTlmData.TYPE.SOFTRESET:		return EpsTlmData.DATATYPE.uint8
-			elif type == EpsTlmData.TYPE.WDRESET:		return EpsTlmData.DATATYPE.uint8
-			elif type == EpsTlmData.TYPE.BRWNOUTRESET:	return EpsTlmData.DATATYPE.uint8
+			elif type == EpsTlmData.TYPE.MANRESET:		return EpsTlmData.DATATYPE.float32
+			elif type == EpsTlmData.TYPE.SOFTRESET:		return EpsTlmData.DATATYPE.float32
+			elif type == EpsTlmData.TYPE.WDRESET:		return EpsTlmData.DATATYPE.float32
+			elif type == EpsTlmData.TYPE.BRWNOUTRESET:	return EpsTlmData.DATATYPE.float32
 			elif type == EpsTlmData.TYPE.WDTIME:		return EpsTlmData.DATATYPE.float32
 			elif type == EpsTlmData.TYPE.CHARGE_LVL:	return EpsTlmData.DATATYPE.float32
-			elif type == EpsTlmData.TYPE.HEATER_STATE1:	return EpsTlmData.DATATYPE.bit
-			elif type == EpsTlmData.TYPE.HEATER_STATE2:	return EpsTlmData.DATATYPE.bit
+			elif type == EpsTlmData.TYPE.HEATER_STATE1:	return EpsTlmData.DATATYPE.float32
+			elif type == EpsTlmData.TYPE.HEATER_STATE2:	return EpsTlmData.DATATYPE.float32
 			elif type == EpsTlmData.TYPE.TEMPERATURE2:	return EpsTlmData.DATATYPE.float32
 			elif type == EpsTlmData.TYPE.TEMPERATURE3:	return EpsTlmData.DATATYPE.float32
 			elif type == EpsTlmData.TYPE.CURRENT3V3:	return EpsTlmData.DATATYPE.float32
 			elif type == EpsTlmData.TYPE.CURRENT5V:		return EpsTlmData.DATATYPE.float32
-			elif type == EpsTlmData.TYPE.BLOCK_INIT:	return EpsTlmData.DATATYPE.uint8
+			elif type == EpsTlmData.TYPE.BLOCK_INIT:	return EpsTlmData.DATATYPE.float32
 
 
 
@@ -181,8 +182,13 @@ class EpsTlmData:
 				EpsTlmData.TYPE(type))].append((time, value))
 			
 			# DEBUG
-			print(device, source, type, time, value)
+			print("  device: " + str(device) + " | source: " + str(source) + " | type: " + str(type) + " | time: " + str(time) + " | value: " + str(value))
 			
+		else:
+			# DEBUG
+			print("? device: " + str(device) + " | source: " + str(source) + " | type: " + str(type) + " | time: " + str(time) + " | value: " + str(value))
+
+
 		return ret
 
 
@@ -192,7 +198,7 @@ class EpsTlmData:
 
 class EpsTlmFileReader(EpsTlmData):
 	
-	ERROR_RATE_LIMIT = 0.01
+	INVALID_VALUE_RATE_LIMIT = 0.03		# expected (init block): 1/44 = 0.023
 	MINIMUM_COUNT = 500
 	
 
@@ -211,39 +217,54 @@ class EpsTlmFileReader(EpsTlmData):
 	def readFile(self):
 		errorCount = 0
 		itemCount = 0
+		
+		# DEBUG
+		bc = False	# print byte count
+		bv = False	# print byte value
 
 		with open(self.fileName, "rb") as file:
 			while True:
+				if bc: print("width: reading byte count:", EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.WIDTH))
+				buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.WIDTH))
+				if not buffer: break
+				width = struct.unpack(EpsTlmData.DATATYPE.uint8.value, buffer)[0]
+				if bv: print("width:", width)
 
+				if bc: print("time: reading byte count:", EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.TIME))
 				buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.TIME))
 				if not buffer: break
 				time = struct.unpack(EpsTlmData.DATATYPE.TIME.value, buffer)[0]
-				print("time:", time)
+				if bv: print("time:", time)
 				
+				if bc: print("device: reading byte count:", EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.DEVICE))
 				buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.DEVICE))
 				if not buffer: break
 				device = struct.unpack(EpsTlmData.DATATYPE.DEVICE.value, buffer)[0]
-				print("device:", device)
+				if bv: print("device:", device)
 				
+				if bc: print("source: reading byte count:", EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.SOURCE))
 				buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.SOURCE))
 				if not buffer: break
 				source = struct.unpack(EpsTlmData.DATATYPE.SOURCE.value, buffer)[0]
-				print("source:", source)
+				if bv: print("source:", source)
 				
+				if bc: print("type: reading byte count:", EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.TYPE))
 				buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.TYPE))
 				if not buffer: break
 				type = struct.unpack(EpsTlmData.DATATYPE.TYPE.value, buffer)[0]
-				print("type:", type)
+				if bv: print("type:", type)
 				
+				if bc: print("value: reading byte count:", EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.VALUE(type)))
 				buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.VALUE(type)))
 				if not buffer: break
 				value = struct.unpack(EpsTlmData.DATATYPE.VALUE(type).value, buffer)[0]
+				if bv: print("value:", value)
 
 				itemCount += 1
-				if self.addData(device, source, type, time, value):
+				if not self.addData(device, source, type, time, value):
 					errorCount += 1
-					if float(errorCount) / itemCount > EpsTlmData.ERROR_RATE_LIMIT:
-						print(self.fileName, "file is corrupt")
+					if itemCount > EpsTlmFileReader.MINIMUM_COUNT and float(errorCount) / itemCount > EpsTlmFileReader.INVALID_VALUE_RATE_LIMIT:
+						print("EPS telemetry file", self.fileName, "is corrupt:", errorCount, "/", itemCount)
 						return False
 
 		return True
@@ -259,6 +280,7 @@ def parse(fileName):
 	print("Parsing", fileName)
 	fr = EpsTlmFileReader(fileName = fileName)
 	fr.readFile()
+	print("Parsing completed")
 	return fr.data
 
 
