@@ -141,12 +141,12 @@ class EpsTlmFileReader(EpsTlmData):
 	ERROR_RATE_LIMIT = 0.2
 	MINIMUM_COUNT = 500
 
-	def __init__(self):
+	def __init__(self, fileName = ""):
 		errorCount = 0
 		itemCount = 0
-
-
-
+			
+		self.newData = EpsTlmData()
+		self.fileName = fileName
 
 
 
@@ -162,9 +162,9 @@ class EpsTlmFileReader(EpsTlmData):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description = "Parses EPS telemetry data *.tlm files")
-	parser.add_argument("--depp")
-	print("EPS == 0:", EpsTlmData.DEVICE.EPS == 0)
-	print("EPS.value == 0:", EpsTlmData.DEVICE.EPS.value == 0)
-	print("EPS == DEVICE(0):", EpsTlmData.DEVICE.EPS == EpsTlmData.DEVICE(0))
+	parser.add_argument("-f", "--file", nargs = 1, action = "store", help = "*.tlm file")
+	#parser.add_argument("--depp")
+	args = parser.parse_args()
+	print(args)
 	EpsTlmFileReader()
 	
