@@ -1,6 +1,8 @@
 import argparse
 import struct
 from enum import Enum
+import datetime
+import os
 
 
 
@@ -18,6 +20,8 @@ class EpsTlmData:
 		CE			= 3
 		SOFT		= 4
 		BLOCK_INIT	= 255
+
+	# ++++++++++++++++++++++++++
 
 	class SOURCE(Enum):
 		UHF 		= 0
@@ -41,6 +45,8 @@ class EpsTlmData:
 		BTTC 		= 18	
 		BLOCK_INIT	= 255
 
+	# ++++++++++++++++++++++++++
+
 	class TYPE(Enum):
 		VOLTAGE			= 0
 		CURRENT			= 1
@@ -60,6 +66,8 @@ class EpsTlmData:
 		CURRENT5V		= 15
 		BLOCK_INIT		= 255
 		
+	# ++++++++++++++++++++++++++
+
 	class DATATYPE(Enum):
 		bit = "?"
 		uint8 = "B"
@@ -109,70 +117,109 @@ class EpsTlmData:
 			elif type == EpsTlmData.TYPE.CURRENT5V:		return EpsTlmData.DATATYPE.float32
 			elif type == EpsTlmData.TYPE.BLOCK_INIT:	return EpsTlmData.DATATYPE.float32
 
+	# ++++++++++++++++++++++++++
 
-
-	def __init__(self):
-		self.data = dict()
-		
+	VALID_COMMANDS = [
 		# BCR
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.BCR1, EpsTlmData.TYPE.VOLTAGE)]			= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.BCR1, EpsTlmData.TYPE.CURRENT)]			= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.BCR1, EpsTlmData.TYPE.CURRENTB)]		= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.BCR2, EpsTlmData.TYPE.VOLTAGE)]			= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.BCR2, EpsTlmData.TYPE.CURRENT)]			= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.BCR2, EpsTlmData.TYPE.CURRENTB)]		= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.BCR3, EpsTlmData.TYPE.VOLTAGE)]			= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.BCR3, EpsTlmData.TYPE.CURRENT)]			= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.BCR3, EpsTlmData.TYPE.CURRENTB)]		= list()
+		(DEVICE.EPS, SOURCE.BCR1, TYPE.VOLTAGE),
+		(DEVICE.EPS, SOURCE.BCR1, TYPE.CURRENT),
+		(DEVICE.EPS, SOURCE.BCR1, TYPE.CURRENTB),
+		(DEVICE.EPS, SOURCE.BCR2, TYPE.VOLTAGE),
+		(DEVICE.EPS, SOURCE.BCR2, TYPE.CURRENT),
+		(DEVICE.EPS, SOURCE.BCR2, TYPE.CURRENTB),
+		(DEVICE.EPS, SOURCE.BCR3, TYPE.VOLTAGE),
+		(DEVICE.EPS, SOURCE.BCR3, TYPE.CURRENT),
+		(DEVICE.EPS, SOURCE.BCR3, TYPE.CURRENTB),
 
 		# TTC
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.TTC, EpsTlmData.TYPE.VOLTAGE)]			= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.TTC, EpsTlmData.TYPE.CURRENT)]			= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.TTC, EpsTlmData.TYPE.CURRENT3V3)]		= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.TTC, EpsTlmData.TYPE.CURRENT5V)]		= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.TTC, EpsTlmData.TYPE.TEMPERATURE)]		= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.TTC, EpsTlmData.TYPE.MANRESET)]			= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.TTC, EpsTlmData.TYPE.WDRESET)]			= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.TTC, EpsTlmData.TYPE.SOFTRESET)]		= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.TTC, EpsTlmData.TYPE.BRWNOUTRESET)]		= list()
+		(DEVICE.EPS, SOURCE.TTC, TYPE.VOLTAGE),
+		(DEVICE.EPS, SOURCE.TTC, TYPE.CURRENT),
+		(DEVICE.EPS, SOURCE.TTC, TYPE.CURRENT3V3),
+		(DEVICE.EPS, SOURCE.TTC, TYPE.CURRENT5V),
+		(DEVICE.EPS, SOURCE.TTC, TYPE.TEMPERATURE),
+		(DEVICE.EPS, SOURCE.TTC, TYPE.MANRESET),
+		(DEVICE.EPS, SOURCE.TTC, TYPE.WDRESET),
+		(DEVICE.EPS, SOURCE.TTC, TYPE.SOFTRESET),
+		(DEVICE.EPS, SOURCE.TTC, TYPE.BRWNOUTRESET),
 
 		# BUS
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.UHF, EpsTlmData.TYPE.VOLTAGE)]			= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.UHF, EpsTlmData.TYPE.CURRENT)]			= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.SBAND, EpsTlmData.TYPE.VOLTAGE)]		= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.SBAND, EpsTlmData.TYPE.CURRENT)]		= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.CDH, EpsTlmData.TYPE.VOLTAGE)]			= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.CDH, EpsTlmData.TYPE.CURRENT)]			= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.SMARD1, EpsTlmData.TYPE.VOLTAGE)]		= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.SMARD1, EpsTlmData.TYPE.CURRENT)]		= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.SMARD2, EpsTlmData.TYPE.VOLTAGE)]		= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.SMARD2, EpsTlmData.TYPE.CURRENT)]		= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.ADCS5V_1, EpsTlmData.TYPE.VOLTAGE)]		= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.ADCS5V_1, EpsTlmData.TYPE.CURRENT)]		= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.ADCS5V_2, EpsTlmData.TYPE.VOLTAGE)]		= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.ADCS5V_2, EpsTlmData.TYPE.CURRENT)]		= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.ADCS3V3_1, EpsTlmData.TYPE.VOLTAGE)]	= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.ADCS3V3_1, EpsTlmData.TYPE.CURRENT)]	= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.ADCS3V3_2, EpsTlmData.TYPE.VOLTAGE)]	= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.ADCS3V3_2, EpsTlmData.TYPE.CURRENT)]	= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.THM, EpsTlmData.TYPE.VOLTAGE)]			= list()
-		self.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.THM, EpsTlmData.TYPE.CURRENT)]			= list()
+		(DEVICE.EPS, SOURCE.UHF,       TYPE.VOLTAGE),
+		(DEVICE.EPS, SOURCE.UHF,       TYPE.CURRENT),
+		(DEVICE.EPS, SOURCE.SBAND,     TYPE.VOLTAGE),
+		(DEVICE.EPS, SOURCE.SBAND,     TYPE.CURRENT),
+		(DEVICE.EPS, SOURCE.CDH,       TYPE.VOLTAGE),
+		(DEVICE.EPS, SOURCE.CDH,       TYPE.CURRENT),
+		(DEVICE.EPS, SOURCE.SMARD1,    TYPE.VOLTAGE),
+		(DEVICE.EPS, SOURCE.SMARD1,    TYPE.CURRENT),
+		(DEVICE.EPS, SOURCE.SMARD2,    TYPE.VOLTAGE),
+		(DEVICE.EPS, SOURCE.SMARD2,    TYPE.CURRENT),
+		(DEVICE.EPS, SOURCE.ADCS5V_1,  TYPE.VOLTAGE),
+		(DEVICE.EPS, SOURCE.ADCS5V_1,  TYPE.CURRENT),
+		(DEVICE.EPS, SOURCE.ADCS5V_2,  TYPE.VOLTAGE),
+		(DEVICE.EPS, SOURCE.ADCS5V_2,  TYPE.CURRENT),
+		(DEVICE.EPS, SOURCE.ADCS3V3_1, TYPE.VOLTAGE),
+		(DEVICE.EPS, SOURCE.ADCS3V3_1, TYPE.CURRENT),
+		(DEVICE.EPS, SOURCE.ADCS3V3_2, TYPE.VOLTAGE),
+		(DEVICE.EPS, SOURCE.ADCS3V3_2, TYPE.CURRENT),
+		(DEVICE.EPS, SOURCE.THM,       TYPE.VOLTAGE),
+		(DEVICE.EPS, SOURCE.THM,       TYPE.CURRENT),
 		
 		# BAT
-		self.data[(EpsTlmData.DEVICE.BAT, EpsTlmData.SOURCE.CELL, EpsTlmData.TYPE.VOLTAGE)]			= list()
-		self.data[(EpsTlmData.DEVICE.BAT, EpsTlmData.SOURCE.CELL, EpsTlmData.TYPE.CURRENT)]			= list()
-		self.data[(EpsTlmData.DEVICE.BAT, EpsTlmData.SOURCE.CE, EpsTlmData.TYPE.CHARGE_LVL)]		= list()
-		self.data[(EpsTlmData.DEVICE.BAT, EpsTlmData.SOURCE.BTTC, EpsTlmData.TYPE.HEATER_STATE1)]	= list()
-		self.data[(EpsTlmData.DEVICE.BAT, EpsTlmData.SOURCE.BTTC, EpsTlmData.TYPE.HEATER_STATE2)]	= list()
-		self.data[(EpsTlmData.DEVICE.BAT, EpsTlmData.SOURCE.BTTC, EpsTlmData.TYPE.TEMPERATURE)]		= list()
-		self.data[(EpsTlmData.DEVICE.BAT, EpsTlmData.SOURCE.BTTC, EpsTlmData.TYPE.TEMPERATURE2)]	= list()
-		self.data[(EpsTlmData.DEVICE.BAT, EpsTlmData.SOURCE.BTTC, EpsTlmData.TYPE.TEMPERATURE3)]	= list()
+		(DEVICE.BAT, SOURCE.CELL, TYPE.VOLTAGE),
+		(DEVICE.BAT, SOURCE.CELL, TYPE.CURRENT),
+		(DEVICE.BAT, SOURCE.CE,   TYPE.CHARGE_LVL),
+		(DEVICE.BAT, SOURCE.BTTC, TYPE.HEATER_STATE1),
+		(DEVICE.BAT, SOURCE.BTTC, TYPE.HEATER_STATE2),
+		(DEVICE.BAT, SOURCE.BTTC, TYPE.TEMPERATURE),
+		(DEVICE.BAT, SOURCE.BTTC, TYPE.TEMPERATURE2),
+		(DEVICE.BAT, SOURCE.BTTC, TYPE.TEMPERATURE3)
+	]
+	
+	# ++++++++++++++++++++++++++
 
+	def __init__(self, mode = ""):
+		self.setMode(mode)
+		self.data = dict()
+		for cmd in EpsTlmData.VALID_COMMANDS:
+			self.data[cmd] = list()
+
+	# ++++++++++++++++++++++++++
+
+	def __add__(self, other):
+		for cmd in EpsTlmData.VALID_COMMANDS:
+			self.data[cmd] += other.data[cmd]
+		return self
+
+	# ++++++++++++++++++++++++++
+
+	def __str__(self):
+		ret = ""
+		for cmd in EpsTlmData.VALID_COMMANDS:
+			ret += ("> device: {0:3d} | source: {1:3d} | type: {2:3d}\n").format(cmd[0].value, cmd[1].value, cmd[2].value)
+			for item in self.data[cmd]:
+				ret += ("   " + str(item[0]) + " | {:10.3f}\n").format(item[1])
+
+	# ++++++++++++++++++++++++++
+
+	def setMode(self, mode):
+		if mode == "p" or mode == "wp" or mode == "pw":
+			self.modePrint = True
+		else:
+			self.modePrint = False
+
+		if mode == "w" or mode == "wp" or mode == "pw":
+			self.modeWrite = True
+		else:
+			self.modeWrite = False
+
+	# ++++++++++++++++++++++++++
 
 	def commandIsValid(self, device, source, type):
 		return (EpsTlmData.DEVICE(device),
 				EpsTlmData.SOURCE(source),
 				EpsTlmData.TYPE(type)) in self.data
+
+	# ++++++++++++++++++++++++++
 	
 	def addData(self, device, source, type, time, value):
 		ret = self.commandIsValid(device, source, type)
@@ -180,14 +227,12 @@ class EpsTlmData:
 			self.data[(EpsTlmData.DEVICE(device),
 				EpsTlmData.SOURCE(source),
 				EpsTlmData.TYPE(type))].append((time, value))
-			
-			# DEBUG
-			print("  device: " + str(device) + " | source: " + str(source) + " | type: " + str(type) + " | time: " + str(time) + " | value: " + str(value))
-			
-		else:
-			# DEBUG
-			print("? device: " + str(device) + " | source: " + str(source) + " | type: " + str(type) + " | time: " + str(time) + " | value: " + str(value))
+			if self.modePrint:
+				print(("  device: {0:3d} | source: {1:3d} | type: {2:3d} | time: " + str(time) + " | value: {3:10.3f}").format(device, source, type, value))
 
+		else:
+			if self.modePrint:
+				print(("! device: {0:3d} | source: {1:3d} | type: {2:3d} | time: " + str(time) + " | value: {3:>10.3f}").format(device, source, type, value))
 
 		return ret
 
@@ -201,71 +246,77 @@ class EpsTlmFileReader(EpsTlmData):
 	INVALID_VALUE_RATE_LIMIT = 0.03		# expected (init block): 1/44 = 0.023
 	MINIMUM_COUNT = 500
 	
+	# ++++++++++++++++++++++++++
 
-	def __init__(self, fileName = ""):
-		EpsTlmData.__init__(self)
+	def __init__(self, fileName = "", mode = ""):
+		EpsTlmData.__init__(self, mode)
 		errorCount = 0
 		itemCount = 0
-		
-		self.fileName = fileName
+		self.setFile(fileName)
 
+	# ++++++++++++++++++++++++++
 
 	def setFile(self, fileName):
-		self.fileName = fileName
+		self.tlmFileName = fileName
+		if fileName[-4:] == ".tlm":
+			self.csvFileName = fileName[:-4] + ".csv"
+		else:
+			self.csvFileName = fileName + ".csv"
+		if os.path.exists(self.csvFileName):
+			i = 1
+			while os.path.exists(self.csvFileName[:-4] + "(" + str(i) + ").csv"):
+				i += 1
+			self.csvFileName = self.csvFileName[:-4] + "(" + str(i) + ").csv"
 
+	# ++++++++++++++++++++++++++
 
 	def readFile(self):
 		errorCount = 0
 		itemCount = 0
 		
-		# DEBUG
-		bc = False	# print byte count
-		bv = False	# print byte value
-
-		with open(self.fileName, "rb") as file:
+		if self.modeWrite: of = open(self.csvFileName, "a")
+		with open(self.tlmFileName, "rb") as file:
 			while True:
-				if bc: print("width: reading byte count:", EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.WIDTH))
 				buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.WIDTH))
 				if not buffer: break
 				width = struct.unpack(EpsTlmData.DATATYPE.uint8.value, buffer)[0]
-				if bv: print("width:", width)
 
-				if bc: print("time: reading byte count:", EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.TIME))
 				buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.TIME))
 				if not buffer: break
-				time = struct.unpack(EpsTlmData.DATATYPE.TIME.value, buffer)[0]
-				if bv: print("time:", time)
+				time = datetime.datetime.fromtimestamp(int(struct.unpack(EpsTlmData.DATATYPE.TIME.value, buffer)[0] / 1e9))
 				
-				if bc: print("device: reading byte count:", EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.DEVICE))
 				buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.DEVICE))
 				if not buffer: break
 				device = struct.unpack(EpsTlmData.DATATYPE.DEVICE.value, buffer)[0]
-				if bv: print("device:", device)
 				
-				if bc: print("source: reading byte count:", EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.SOURCE))
 				buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.SOURCE))
 				if not buffer: break
 				source = struct.unpack(EpsTlmData.DATATYPE.SOURCE.value, buffer)[0]
-				if bv: print("source:", source)
 				
-				if bc: print("type: reading byte count:", EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.TYPE))
 				buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.TYPE))
 				if not buffer: break
 				type = struct.unpack(EpsTlmData.DATATYPE.TYPE.value, buffer)[0]
-				if bv: print("type:", type)
 				
-				if bc: print("value: reading byte count:", EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.VALUE(type)))
 				buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.VALUE(type)))
 				if not buffer: break
 				value = struct.unpack(EpsTlmData.DATATYPE.VALUE(type).value, buffer)[0]
-				if bv: print("value:", value)
 
 				itemCount += 1
-				if not self.addData(device, source, type, time, value):
+				ret = self.addData(device, source, type, time, value)
+				if not ret:
 					errorCount += 1
 					if itemCount > EpsTlmFileReader.MINIMUM_COUNT and float(errorCount) / itemCount > EpsTlmFileReader.INVALID_VALUE_RATE_LIMIT:
-						print("EPS telemetry file", self.fileName, "is corrupt:", errorCount, "/", itemCount)
+						print("EPS telemetry file", self.tlmFileName, "is corrupt:", errorCount, "/", itemCount)
 						return False
+				elif self.modeWrite:
+					tmp = str(time).split(" ")
+					of.write((EpsTlmData.DEVICE(device).name + ";" + 
+						EpsTlmData.SOURCE(source).name + ";" +
+						EpsTlmData.TYPE(type).name + ";" +
+						tmp[0] + ";" + tmp[1] +
+						";{:f};\n").format(value))
+
+		if self.modeWrite: of.close()
 
 		return True
 
@@ -276,19 +327,23 @@ class EpsTlmFileReader(EpsTlmData):
 # ########     Parse     ########
 # ###############################
 
-def parse(fileName):
-	print("Parsing", fileName)
-	fr = EpsTlmFileReader(fileName = fileName)
+def parse(fileName, mode = ""):
+	print("Parsing file", fileName)
+	fr = EpsTlmFileReader(fileName = fileName, mode = mode)
 	fr.readFile()
 	print("Parsing completed")
+	if fr.modeWrite: print("Output file", fr.csvFileName)
 	return fr.data
 
 
+# ###############################
+# ########     Main     #########
+# ###############################
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(prog = "EPS_TLM_Parser", description = "Parses EPS telemetry data *.tlm files")
 	parser.add_argument("tlmFile", help = "EPS telemetry *.tlm file")
 	args = parser.parse_args()
 	fileName = args.tlmFile
-	parse(fileName)
+	parse(fileName, mode = "")
 	
