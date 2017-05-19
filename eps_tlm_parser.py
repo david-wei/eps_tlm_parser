@@ -73,39 +73,39 @@ class EpsTlmData:
 		float64 = 9
 
 		def byteCount(datatype):
-			if datatype == DATATYPE.bit or datatype == DATATYPE.uint8:
+			if datatype == EpsTlmData.DATATYPE.bit or datatype == EpsTlmData.DATATYPE.uint8:
 				return 1
-			elif datatype == DATATYPE.uint16 or datatype == DATATYPE.int16:
+			elif datatype == EpsTlmData.DATATYPE.uint16 or datatype == EpsTlmData.DATATYPE.int16:
 				return 2
-			elif datatype == DATATYPE.uint32 or datatype == DATATYPE.int32 or datatype == DATATYPE.float32:
+			elif datatype == EpsTlmData.DATATYPE.uint32 or datatype == EpsTlmData.DATATYPE.int32 or datatype == EpsTlmData.DATATYPE.float32:
 				return 4
-			elif datatype == DATATYPE.uint64 or datatype == DATATYPE.int64 or datatype == DATATYPE.float64:
+			elif datatype == EpsTlmData.DATATYPE.uint64 or datatype == EpsTlmData.DATATYPE.int64 or datatype == EpsTlmData.DATATYPE.float64:
 				return 8
 
-		TIME = DATATYPE.uint64
-		DEVICE = DATATYPE.uint8
-		SOURCE = DATATYPE.uint8
-		TYPE = DATATYPE.uint8
+		TIME = EpsTlmData.DATATYPE.uint64
+		DEVICE = EpsTlmData.DATATYPE.uint8
+		SOURCE = EpsTlmData.DATATYPE.uint8
+		TYPE = EpsTlmData.DATATYPE.uint8
 
 		def VALUE(type):
 			type = EpsTlmData.TYPE(type)
-			if type == EpsTlmData.TYPE.VOLTAGE:			return DATATYPE.float32
-			elif type == EpsTlmData.TYPE.CURRENT:		return DATATYPE.float32
-			elif type == EpsTlmData.TYPE.CURRENTB:		return DATATYPE.float32
-			elif type == EpsTlmData.TYPE.TEMPERATURE:	return DATATYPE.float32
-			elif type == EpsTlmData.TYPE.MANRESET:		return DATATYPE.uint8
-			elif type == EpsTlmData.TYPE.SOFTRESET:		return DATATYPE.uint8
-			elif type == EpsTlmData.TYPE.WDRESET:		return DATATYPE.uint8
-			elif type == EpsTlmData.TYPE.BRWNOUTRESET:	return DATATYPE.uint8
-			elif type == EpsTlmData.TYPE.WDTIME:		return DATATYPE.float32
-			elif type == EpsTlmData.TYPE.CHARGE_LVL:	return DATATYPE.float32
-			elif type == EpsTlmData.TYPE.HEATER_STATE1:	return DATATYPE.bit
-			elif type == EpsTlmData.TYPE.HEATER_STATE2:	return DATATYPE.bit
-			elif type == EpsTlmData.TYPE.TEMPERATURE2:	return DATATYPE.float32
-			elif type == EpsTlmData.TYPE.TEMPERATURE3:	return DATATYPE.float32
-			elif type == EpsTlmData.TYPE.CURRENT3V3:	return DATATYPE.float32
-			elif type == EpsTlmData.TYPE.CURRENT5V:		return DATATYPE.float32
-			elif type == EpsTlmData.TYPE.BLOCK_INIT:	return DATATYPE.uint8
+			if type == EpsTlmData.TYPE.VOLTAGE:			return EpsTlmData.DATATYPE.float32
+			elif type == EpsTlmData.TYPE.CURRENT:		return EpsTlmData.DATATYPE.float32
+			elif type == EpsTlmData.TYPE.CURRENTB:		return EpsTlmData.DATATYPE.float32
+			elif type == EpsTlmData.TYPE.TEMPERATURE:	return EpsTlmData.DATATYPE.float32
+			elif type == EpsTlmData.TYPE.MANRESET:		return EpsTlmData.DATATYPE.uint8
+			elif type == EpsTlmData.TYPE.SOFTRESET:		return EpsTlmData.DATATYPE.uint8
+			elif type == EpsTlmData.TYPE.WDRESET:		return EpsTlmData.DATATYPE.uint8
+			elif type == EpsTlmData.TYPE.BRWNOUTRESET:	return EpsTlmData.DATATYPE.uint8
+			elif type == EpsTlmData.TYPE.WDTIME:		return EpsTlmData.DATATYPE.float32
+			elif type == EpsTlmData.TYPE.CHARGE_LVL:	return EpsTlmData.DATATYPE.float32
+			elif type == EpsTlmData.TYPE.HEATER_STATE1:	return EpsTlmData.DATATYPE.bit
+			elif type == EpsTlmData.TYPE.HEATER_STATE2:	return EpsTlmData.DATATYPE.bit
+			elif type == EpsTlmData.TYPE.TEMPERATURE2:	return EpsTlmData.DATATYPE.float32
+			elif type == EpsTlmData.TYPE.TEMPERATURE3:	return EpsTlmData.DATATYPE.float32
+			elif type == EpsTlmData.TYPE.CURRENT3V3:	return EpsTlmData.DATATYPE.float32
+			elif type == EpsTlmData.TYPE.CURRENT5V:		return EpsTlmData.DATATYPE.float32
+			elif type == EpsTlmData.TYPE.BLOCK_INIT:	return EpsTlmData.DATATYPE.uint8
 
 
 
