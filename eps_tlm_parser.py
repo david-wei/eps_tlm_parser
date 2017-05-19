@@ -303,12 +303,17 @@ class EpsTlmFileReader(EpsTlmData):
 				if not buffer: break
 				type = struct.unpack(EpsTlmData.DATATYPE.TYPE.value, buffer)[0]
 				
-				buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.VALUE(type)))
-				if not buffer: break
-				value = struct.unpack(EpsTlmData.DATATYPE.VALUE(type).value, buffer)[0]
+				try:
+					buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.VALUE(type)))
+					if not buffer: break
+					value = struct.unpack(EpsTlmData.DATATYPE.VALUE(type).value, buffer)[0]
+
+					ret = self.addData(device, source, type, time, value)
+
+				except ValueError:
+					ret = False
 
 				itemCount += 1
-				ret = self.addData(device, source, type, time, value)
 				if not ret:
 					errorCount += 1
 					if itemCount > EpsTlmFileReader.MINIMUM_COUNT and float(errorCount) / itemCount > EpsTlmFileReader.INVALID_VALUE_RATE_LIMIT:
