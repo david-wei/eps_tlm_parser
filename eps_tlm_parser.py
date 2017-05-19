@@ -61,19 +61,20 @@ class EpsTlmData:
 		BLOCK_INIT		= 255
 		
 	class DATATYPE(Enum):
-		bit = 0
-		uint8 = 1
-		uint16 = 2
-		uint32 = 3
-		uint64 = 4
-		int16 = 5
-		int32 = 6
-		int64 = 7
-		float32 = 8
-		float64 = 9
+		bit = "?"
+		uint8 = "B"
+		uint16 = "H"
+		uint32 = "I"
+		uint64 = "Q"
+		int8 = "b"
+		int16 = "h"
+		int32 = "i"
+		int64 = "q"
+		float32 = "f"
+		float64 = "d"
 
 		def byteCount(datatype):
-			if datatype == EpsTlmData.DATATYPE.bit or datatype == EpsTlmData.DATATYPE.uint8:
+			if datatype == EpsTlmData.DATATYPE.bit or datatype == EpsTlmData.DATATYPE.uint8 or datatype == EpsTlmData.DATATYPE.int8:
 				return 1
 			elif datatype == EpsTlmData.DATATYPE.uint16 or datatype == EpsTlmData.DATATYPE.int16:
 				return 2
@@ -82,10 +83,10 @@ class EpsTlmData:
 			elif datatype == EpsTlmData.DATATYPE.uint64 or datatype == EpsTlmData.DATATYPE.int64 or datatype == EpsTlmData.DATATYPE.float64:
 				return 8
 
-		TIME = EpsTlmData.DATATYPE.uint64
-		DEVICE = EpsTlmData.DATATYPE.uint8
-		SOURCE = EpsTlmData.DATATYPE.uint8
-		TYPE = EpsTlmData.DATATYPE.uint8
+		TIME = uint64
+		DEVICE = uint8
+		SOURCE = uint8
+		TYPE = uint8
 
 		def VALUE(type):
 			type = EpsTlmData.TYPE(type)
@@ -178,6 +179,10 @@ class EpsTlmData:
 			self.data[(EpsTlmData.DEVICE(device),
 				EpsTlmData.SOURCE(source),
 				EpsTlmData.TYPE(type))].append((time, value))
+			
+			# DEBUG
+			print(device, source, type, time, value)
+			
 		return ret
 
 
@@ -187,36 +192,81 @@ class EpsTlmData:
 
 class EpsTlmFileReader(EpsTlmData):
 	
-	ERROR_RATE_LIMIT = 0.2
+	ERROR_RATE_LIMIT = 0.01
 	MINIMUM_COUNT = 500
-
-
+	
 
 	def __init__(self, fileName = ""):
+		EpsTlmData.__init__(self)
 		errorCount = 0
 		itemCount = 0
-			
-		self.newData = EpsTlmData()
+		
+		self.fileName = fileName
+
+
+	def setFile(self, fileName):
 		self.fileName = fileName
 
 
 	def readFile(self):
-		self.file = open(self.fileName, "rb")
-		
+		errorCount = 0
+		itemCount = 0
+
+		with open(self.fileName, "rb") as file:
+			while True:
+
+				buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.TIME))
+				if not buffer: break
+				time = struct.unpack(EpsTlmData.DATATYPE.TIME.value, buffer)[0]
+				print("time:", time)
+				
+				buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.DEVICE))
+				if not buffer: break
+				device = struct.unpack(EpsTlmData.DATATYPE.DEVICE.value, buffer)[0]
+				print("device:", device)
+				
+				buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.SOURCE))
+				if not buffer: break
+				source = struct.unpack(EpsTlmData.DATATYPE.SOURCE.value, buffer)[0]
+				print("source:", source)
+				
+				buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.TYPE))
+				if not buffer: break
+				type = struct.unpack(EpsTlmData.DATATYPE.TYPE.value, buffer)[0]
+				print("type:", type)
+				
+				buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.VALUE(type)))
+				if not buffer: break
+				value = struct.unpack(EpsTlmData.DATATYPE.VALUE(type).value, buffer)[0]
+
+				itemCount += 1
+				if self.addData(device, source, type, time, value):
+					errorCount += 1
+					if float(errorCount) / itemCount > EpsTlmData.ERROR_RATE_LIMIT:
+						print(self.fileName, "file is corrupt")
+						return False
+
+		return True
 
 
 
 
+# ###############################
+# ########     Parse     ########
+# ###############################
 
-
+def parse(fileName):
+	print("Parsing", fileName)
+	fr = EpsTlmFileReader(fileName = fileName)
+	fr.readFile()
+	return fr.data
 
 
 
 if __name__ == "__main__":
-	parser = argparse.ArgumentParser(description = "Parses EPS telemetry data *.tlm files")
-	parser.add_argument("-f", "--file", nargs = 1, action = "store", help = "*.tlm file")
-	#parser.add_argument("--depp")
+	parser = argparse.ArgumentParser(prog = "EPS_TLM_Parser", description = "Parses EPS telemetry data *.tlm files")
+	parser.add_argument("tlmFile", help = "EPS telemetry *.tlm file")
 	args = parser.parse_args()
-	print(args)
-	EpsTlmFileReader()
+	fileName = args.tlmFile
+	parse(fileName)
 	
