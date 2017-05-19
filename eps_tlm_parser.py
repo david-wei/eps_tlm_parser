@@ -1,4 +1,5 @@
 import argparse
+import struct
 from enum import Enum
 
 
@@ -58,6 +59,54 @@ class EpsTlmData:
 		CURRENT3V3		= 14
 		CURRENT5V		= 15
 		BLOCK_INIT		= 255
+		
+	class DATATYPE(Enum):
+		bit = 0
+		uint8 = 1
+		uint16 = 2
+		uint32 = 3
+		uint64 = 4
+		int16 = 5
+		int32 = 6
+		int64 = 7
+		float32 = 8
+		float64 = 9
+
+		def byteCount(datatype):
+			if datatype == DATATYPE.bit or datatype == DATATYPE.uint8:
+				return 1
+			elif datatype == DATATYPE.uint16 or datatype == DATATYPE.int16:
+				return 2
+			elif datatype == DATATYPE.uint32 or datatype == DATATYPE.int32 or datatype == DATATYPE.float32:
+				return 4
+			elif datatype == DATATYPE.uint64 or datatype == DATATYPE.int64 or datatype == DATATYPE.float64:
+				return 8
+
+		TIME = DATATYPE.uint64
+		DEVICE = DATATYPE.uint8
+		SOURCE = DATATYPE.uint8
+		TYPE = DATATYPE.uint8
+
+		def VALUE(type):
+			type = EpsTlmData.TYPE(type)
+			if type == EpsTlmData.TYPE.VOLTAGE:			return DATATYPE.float32
+			elif type == EpsTlmData.TYPE.CURRENT:		return DATATYPE.float32
+			elif type == EpsTlmData.TYPE.CURRENTB:		return DATATYPE.float32
+			elif type == EpsTlmData.TYPE.TEMPERATURE:	return DATATYPE.float32
+			elif type == EpsTlmData.TYPE.MANRESET:		return DATATYPE.uint8
+			elif type == EpsTlmData.TYPE.SOFTRESET:		return DATATYPE.uint8
+			elif type == EpsTlmData.TYPE.WDRESET:		return DATATYPE.uint8
+			elif type == EpsTlmData.TYPE.BRWNOUTRESET:	return DATATYPE.uint8
+			elif type == EpsTlmData.TYPE.WDTIME:		return DATATYPE.float32
+			elif type == EpsTlmData.TYPE.CHARGE_LVL:	return DATATYPE.float32
+			elif type == EpsTlmData.TYPE.HEATER_STATE1:	return DATATYPE.bit
+			elif type == EpsTlmData.TYPE.HEATER_STATE2:	return DATATYPE.bit
+			elif type == EpsTlmData.TYPE.TEMPERATURE2:	return DATATYPE.float32
+			elif type == EpsTlmData.TYPE.TEMPERATURE3:	return DATATYPE.float32
+			elif type == EpsTlmData.TYPE.CURRENT3V3:	return DATATYPE.float32
+			elif type == EpsTlmData.TYPE.CURRENT5V:		return DATATYPE.float32
+			elif type == EpsTlmData.TYPE.BLOCK_INIT:	return DATATYPE.uint8
+
 
 
 	def __init__(self):
@@ -141,6 +190,8 @@ class EpsTlmFileReader(EpsTlmData):
 	ERROR_RATE_LIMIT = 0.2
 	MINIMUM_COUNT = 500
 
+
+
 	def __init__(self, fileName = ""):
 		errorCount = 0
 		itemCount = 0
@@ -149,8 +200,9 @@ class EpsTlmFileReader(EpsTlmData):
 		self.fileName = fileName
 
 
-
-
+	def readFile(self):
+		self.file = open(self.fileName, "rb")
+		
 
 
 
