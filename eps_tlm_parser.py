@@ -1,9 +1,10 @@
+#!/usr/bin/env python
+
 import argparse
 import struct
-from enum import Enum
+import enum
 import datetime
 import os
-
 
 
 
@@ -13,7 +14,7 @@ import os
 
 class EpsTlmData:
 	
-	class DEVICE(Enum):
+	class DEVICE(enum.Enum):
 		EPS			= 0
 		BAT			= 1
 		SSE			= 2
@@ -23,7 +24,7 @@ class EpsTlmData:
 
 	# ++++++++++++++++++++++++++
 
-	class SOURCE(Enum):
+	class SOURCE(enum.Enum):
 		UHF 		= 0
 		CDH 		= 1
 		SBAND 		= 2
@@ -47,7 +48,7 @@ class EpsTlmData:
 
 	# ++++++++++++++++++++++++++
 
-	class TYPE(Enum):
+	class TYPE(enum.Enum):
 		VOLTAGE			= 0
 		CURRENT			= 1
 		CURRENTB		= 2
@@ -68,7 +69,7 @@ class EpsTlmData:
 		
 	# ++++++++++++++++++++++++++
 
-	class DATATYPE(Enum):
+	class DATATYPE(enum.Enum):
 		bit = "?"
 		uint8 = "B"
 		uint16 = "H"
@@ -195,19 +196,24 @@ class EpsTlmData:
 	def __str__(self):
 		ret = ""
 		for cmd in EpsTlmData.VALID_COMMANDS:
-			ret += ("> device: {0:3d} | source: {1:3d} | type: {2:3d}\n").format(cmd[0].value, cmd[1].value, cmd[2].value)
+			ret += "\n> "
+			tmp = cmd[0].name + " | " + cmd[1].name + " | " + cmd[2].name
+			ret += tmp + "\n  "
+			for i in range(len(tmp)): ret += "="
+			ret += "\n"
 			for item in self.data[cmd]:
-				ret += ("   " + str(item[0]) + " | {:10.3f}\n").format(item[1])
+				ret += ("  " + str(item[0]) + "   | {:10.3f}\n").format(item[1])
+		return ret
 
 	# ++++++++++++++++++++++++++
 
 	def setMode(self, mode):
-		if mode == "p" or mode == "wp" or mode == "pw":
+		if mode == "p" or mode == "op" or mode == "po":
 			self.modePrint = True
 		else:
 			self.modePrint = False
 
-		if mode == "w" or mode == "wp" or mode == "pw":
+		if mode == "o" or mode == "op" or mode == "po":
 			self.modeWrite = True
 		else:
 			self.modeWrite = False
@@ -333,7 +339,7 @@ def parse(fileName, mode = ""):
 	fr.readFile()
 	print("Parsing completed")
 	if fr.modeWrite: print("Output file", fr.csvFileName)
-	return fr.data
+	return fr
 
 
 # ###############################
@@ -343,7 +349,15 @@ def parse(fileName, mode = ""):
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(prog = "EPS_TLM_Parser", description = "Parses EPS telemetry data *.tlm files")
 	parser.add_argument("tlmFile", help = "EPS telemetry *.tlm file")
+	parser.add_argument("-o", "--output", help = "outputs a human readable *.csv file", action = "store_true")
+	parser.add_argument("-p", "--print", help = "prints the values read from the *.tlm file", action = "store_true")
+	parser.add_argument("-s", "--sorted", help = "prints the values sorted according to the data type", action = "store_true")
+
+	mode = ""
 	args = parser.parse_args()
 	fileName = args.tlmFile
-	parse(fileName, mode = "")
+	if args.output: mode += "o"
+	if args.print: mode += "p"
+	ret = parse(fileName, mode = mode)
+	if args.sorted: print(ret)
 	
