@@ -280,6 +280,10 @@ class EpsTlmFileReader(EpsTlmData):
 		errorCount = 0
 		itemCount = 0
 		
+		if not os.path.isfile(self.tlmFileName):
+			print("Specified telemetry file " + self.tlmFileName + " does not exist")
+			return False
+
 		if self.modeWrite: of = open(self.csvFileName, "a")
 		with open(self.tlmFileName, "rb") as file:
 			while True:
@@ -332,8 +336,6 @@ class EpsTlmFileReader(EpsTlmData):
 		return True
 
 
-
-
 # ###############################
 # ########     Parse     ########
 # ###############################
@@ -341,9 +343,12 @@ class EpsTlmFileReader(EpsTlmData):
 def parse(fileName, mode = ""):
 	print("Parsing file", fileName)
 	fr = EpsTlmFileReader(fileName = fileName, mode = mode)
-	fr.readFile()
-	print("Parsing completed")
-	if fr.modeWrite: print("Output file", fr.csvFileName)
+	ret = fr.readFile()
+	if ret:
+		print("Parsing completed")
+		if fr.modeWrite: print("Output file", fr.csvFileName)
+	else:
+		print("Parsing failed")
 	return fr
 
 
