@@ -284,72 +284,62 @@ class EpsTlmFileReader(EpsTlmData):
 			print("Specified telemetry file " + self.tlmFileName + " does not exist")
 			return False
 
-		if self.modeWrite: of = open(self.csvFileName, "a")
-		with open(self.tlmFileName, "rb") as file:
-			while True:
-				buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.WIDTH))
-				if not buffer: break
-				width = struct.unpack(EpsTlmData.DATATYPE.uint8.value, buffer)[0]
+		if self.modeWrite:
+			of = open(self.csvFileName, "a")
+			of.write("DEVICE;SOURCE;TYPE;DATE;TIME;VALUE\n")
 
-				buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.TIME))
-				if not buffer: break
-				time = datetime.datetime.fromtimestamp(int(struct.unpack(EpsTlmData.DATATYPE.TIME.value, buffer)[0] / 1e9))
-				
-				buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.DEVICE))
-				if not buffer: break
-				device = struct.unpack(EpsTlmData.DATATYPE.DEVICE.value, buffer)[0]
-				
-				buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.SOURCE))
-				if not buffer: break
-				source = struct.unpack(EpsTlmData.DATATYPE.SOURCE.value, buffer)[0]
-				
-				buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.TYPE))
-				if not buffer: break
-				type = struct.unpack(EpsTlmData.DATATYPE.TYPE.value, buffer)[0]
-				
-				try:
-					buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.VALUE(type)))
+		try:
+			with open(self.tlmFileName, "rb") as file:
+				while True:
+					buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.WIDTH))
 					if not buffer: break
-					value = struct.unpack(EpsTlmData.DATATYPE.VALUE(type).value, buffer)[0]
+					width = struct.unpack(EpsTlmData.DATATYPE.uint8.value, buffer)[0]
 
-					ret = self.addData(device, source, type, time, value)
+					buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.TIME))
+					if not buffer: break
+					time = datetime.datetime.fromtimestamp(int(struct.unpack(EpsTlmData.DATATYPE.TIME.value, buffer)[0] / 1e9))
+				
+					buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.DEVICE))
+					if not buffer: break
+					device = struct.unpack(EpsTlmData.DATATYPE.DEVICE.value, buffer)[0]
+				
+					buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.SOURCE))
+					if not buffer: break
+					source = struct.unpack(EpsTlmData.DATATYPE.SOURCE.value, buffer)[0]
+				
+					buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.TYPE))
+					if not buffer: break
+					type = struct.unpack(EpsTlmData.DATATYPE.TYPE.value, buffer)[0]
+				
+					try:
+						buffer = file.read(EpsTlmData.DATATYPE.byteCount(EpsTlmData.DATATYPE.VALUE(type)))
+						if not buffer: break
+						value = struct.unpack(EpsTlmData.DATATYPE.VALUE(type).value, buffer)[0]
 
-				except ValueError:
-					ret = False
+						ret = self.addData(device, source, type, time, value)
 
-				itemCount += 1
-				if not ret:
-					errorCount += 1
-					if itemCount > EpsTlmFileReader.MINIMUM_COUNT and float(errorCount) / itemCount > EpsTlmFileReader.INVALID_VALUE_RATE_LIMIT:
-						print("EPS telemetry file", self.tlmFileName, "is corrupt:", errorCount, "/", itemCount)
-						return False
-				elif self.modeWrite:
-					tmp = str(time).split(" ")
-					of.write((EpsTlmData.DEVICE(device).name + ";" + 
-						EpsTlmData.SOURCE(source).name + ";" +
-						EpsTlmData.TYPE(type).name + ";" +
-						tmp[0] + ";" + tmp[1] +
-						";{:f};\n").format(value))
+					except ValueError:
+						ret = False
+
+					itemCount += 1
+					if not ret:
+						errorCount += 1
+						if itemCount > EpsTlmFileReader.MINIMUM_COUNT and float(errorCount) / itemCount > EpsTlmFileReader.INVALID_VALUE_RATE_LIMIT:
+							print("EPS telemetry file", self.tlmFileName, "is corrupt:", errorCount, "/", itemCount)
+							return False
+					elif self.modeWrite:
+						tmp = str(time).split(" ")
+						of.write((EpsTlmData.DEVICE(device).name + ";" + 
+							EpsTlmData.SOURCE(source).name + ";" +
+							EpsTlmData.TYPE(type).name + ";" +
+							tmp[0] + ";" + tmp[1] +
+							";{:f};\n").format(value))
+		except IOError:
+			return False
 
 		if self.modeWrite: of.close()
 
 		return True
-
-
-# ###############################
-# ########     Parse     ########
-# ###############################
-
-def parse(fileName, mode = ""):
-	print("Parsing file", fileName)
-	fr = EpsTlmFileReader(fileName = fileName, mode = mode)
-	ret = fr.readFile()
-	if ret:
-		print("Parsing completed")
-		if fr.modeWrite: print("Output file", fr.csvFileName)
-	else:
-		print("Parsing failed")
-	return fr
 
 
 # ###############################
@@ -368,6 +358,15 @@ if __name__ == "__main__":
 	fileName = args.tlmFile
 	if args.output: mode += "o"
 	if args.print: mode += "p"
-	ret = parse(fileName, mode = mode)
-	if args.sorted: print(ret)
+	
+	print("Parsing file", fileName)
+	fr = EpsTlmFileReader(fileName = fileName, mode = mode)
+	ret = fr.readFile()
+	if ret:
+		print("Parsing completed")
+		if fr.modeWrite: print("Output file", fr.csvFileName)
+	else:
+		print("Parsing failed")
+
+	if args.sorted: print(fr)
 	
