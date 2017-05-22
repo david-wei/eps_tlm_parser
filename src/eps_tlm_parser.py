@@ -5,6 +5,7 @@ import struct
 import enum
 import datetime
 import os
+import operator
 
 
 
@@ -242,6 +243,18 @@ class EpsTlmData:
 
 		return ret
 
+	# ++++++++++++++++++++++++++
+
+	def sortData(self, cmd):
+		self.data[cmd] = sorted(self.data[cmd], key = operator.itemgetter(0), reverse = False)
+
+	# ++++++++++++++++++++++++++
+
+	def sortAllData(self):
+		for cmd in EpsTlmData.VALID_COMMANDS:
+			self.sortData(cmd)
+
+
 
 # ###############################
 # #####     File Reader     #####
@@ -259,6 +272,7 @@ class EpsTlmFileReader(EpsTlmData):
 		errorCount = 0
 		itemCount = 0
 		self.setFile(fileName)
+		self.setFolder("")
 
 	# ++++++++++++++++++++++++++
 
@@ -273,6 +287,18 @@ class EpsTlmFileReader(EpsTlmData):
 			while os.path.exists(self.csvFileName[:-4] + "(" + str(i) + ").csv"):
 				i += 1
 			self.csvFileName = self.csvFileName[:-4] + "(" + str(i) + ").csv"
+
+	# ++++++++++++++++++++++++++
+
+	def setFolder(self, folderName):
+		self.fileList = list()
+		if folderName and os.path.isdir(folderName):
+			for file in os.listdir(folderName):
+				if file.endswith(".tlm"):
+					self.fileList.append(os.path.join(folderName, file))
+			return True
+		else:
+			return False
 
 	# ++++++++++++++++++++++++++
 
@@ -335,11 +361,22 @@ class EpsTlmFileReader(EpsTlmData):
 							tmp[0] + ";" + tmp[1] +
 							";{:f};\n").format(value))
 		except IOError:
+			print("Error reading telemetry file " + self.tlmFileName + ", error rate: " + str(errorCount) + "/" + str(itemCount))
 			return False
 
 		if self.modeWrite: of.close()
 
 		return True
+
+	# ++++++++++++++++++++++++++
+
+	def readFolder(self):
+		ret = True
+		for file in self.fileList:
+			self.setFile(file)
+			ret &= self.readFile()
+		return ret
+
 
 
 # ###############################
