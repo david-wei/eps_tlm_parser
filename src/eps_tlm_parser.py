@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import argparse
 import struct
@@ -385,23 +385,32 @@ class EpsTlmFileReader(EpsTlmData):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(prog = "EPS_TLM_Parser", description = "Parses EPS telemetry data *.tlm files")
-	parser.add_argument("tlmFile", help = "EPS telemetry *.tlm file")
+	parser.add_argument("tlmFile", help = "EPS telemetry *.tlm file or folder containing *.tlm files")
 	parser.add_argument("-o", "--output", help = "outputs a human readable *.csv file", action = "store_true")
 	parser.add_argument("-p", "--print", help = "prints the values read from the *.tlm file", action = "store_true")
 	parser.add_argument("-s", "--sorted", help = "prints the values sorted according to the data type", action = "store_true")
 
 	mode = ""
+	isFolder = False
 	args = parser.parse_args()
 	fileName = args.tlmFile
 	if args.output: mode += "o"
 	if args.print: mode += "p"
 	
-	print("Parsing file", fileName)
-	fr = EpsTlmFileReader(fileName = fileName, mode = mode)
-	ret = fr.readFile()
+	fr = EpsTlmFileReader(mode = mode)
+	if os.path.isdir(fileName):
+		isFolder = True
+		fr.setFolder(fileName)
+		print("Parsing files", fr.fileList)
+		ret = fr.readFolder()
+	else:
+		fr.setFile(fileName)
+		print("Parsing file", fileName)
+		ret = fr.readFile()
+
 	if ret:
 		print("Parsing completed")
-		if fr.modeWrite: print("Output file", fr.csvFileName)
+		if fr.modeWrite and isFolder: print("Output file", fr.csvFileName)
 	else:
 		print("Parsing failed")
 
