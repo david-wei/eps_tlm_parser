@@ -5,7 +5,8 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{17eb88ec-e80a-49b6-a1f0-9c5384d59cc7}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>eps_tlm_parser.py</StartupFile>
+    <StartupFile>
+    </StartupFile>
     <SearchPath />
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -19,10 +20,35 @@
     <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="eps_tlm_parser.py" />
+    <InterpreterReference Include="Global|PythonCore|3.6" />
   </ItemGroup>
   <ItemGroup>
-    <InterpreterReference Include="Global|PythonCore|3.6" />
+    <Compile Include="eps\eps_tlm_parser.py" />
+    <Compile Include="eps_processor.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="log_processor.py" />
+    <Compile Include="parser_utils.py" />
+    <Compile Include="pl_processor.py" />
+    <Compile Include="test-log_processor.py" />
+    <Compile Include="thm\beaconconvert.py" />
+    <Compile Include="thm_processor.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="example-files\" />
+    <Folder Include="example-files\log\" />
+    <Folder Include="example-files\pl\" />
+    <Folder Include="thm\" />
+    <Folder Include="thm\__pycache__\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="example-files\log\config-log.json" />
+    <Content Include="example-files\log\logoutput.txt" />
+    <Content Include="example-files\pl\1478272994_cell0_measure" />
+    <Content Include="example-files\pl\config.json" />
+    <Content Include="thm\config.json" />
+    <Content Include="thm\thm_data.dat" />
+    <Content Include="thm\__pycache__\beaconconvert.cpython-35.pyc" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>

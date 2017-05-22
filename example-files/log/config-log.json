@@ -1,0 +1,55 @@
+{
+	"receiver" :
+	{
+		"hostname" : "localhost",
+		"port" : 5672,
+		"exchange" : "amq.direct",
+		"bindingKey" : "log.processor",
+		"user" : "guest",
+		"pass" : "guest"
+	},
+
+	"url" : "http://localhost:8080/logbook/logs",
+	"logfile" : "logging.log",
+
+	"mappings" :
+	{
+		"1-wire-toppanel.service" : "OS",
+		"2smard_activator.service" : "STR",
+		"adcs.service" : "ADCS",
+		"bdc.service" : "CDH",
+		"blink.service" : "OS",
+		"bootcounter-check.service" : "OS",
+		"bootcounter.service" : "OS",
+		"cdhd-all.service" : "CDH",
+		"cdhd-alpha.service" : "CDH",
+		"cdhd-beta.service" : "CDH",
+		"cdhd-delta.service" : "CDH",
+		"cdhd-epsilon.service" : "CDH",
+		"cdhd-gamma.service" : "CDH",
+		"com.service" : "COM",
+		"eps-set-reset-time.service" : "EPS",
+		"eps.service" : "EPS",
+		"executor.service" : "CDH",
+		"export_pins.service" : "OS",
+		"file-transfer.service" : "CDH",
+		"gps_active.service" : "CDH",
+		"gps_hardware.service" : "CDH",
+		"gpsd.service" : "CDH",
+		"horst.service" : "CDH",
+		"horst_deployed.service" : "CDH",
+		"loglevel4.service" : "OS",
+		"pl.service" : "PL",
+		"rebootcycle.service" : "CDH",
+		"resq.service" : "CDH",
+		"s3tp.service" : "COM",
+		"sdcard@.service" : "OS",
+		"sleepwake.service" : "CDH",
+		"spi.service" : "OS",
+		"thm.service" : "THM",
+		"uhf-defaultmode.service" : "COM",
+		"var-log-as-tmpfs.service" : "OS",
+		"var-log.service" : "OS",
+		"default" : "OS"
+	}
+}

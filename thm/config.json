@@ -1,0 +1,14 @@
+{
+	"receiver" :
+	{
+		"hostname" : "localhost",
+		"port" : 5672,
+		"exchange" : "amq.direct",
+		"bindingKey" : "log.thm",
+		"user" : "guest",
+		"pass" : "guest"
+	},
+
+	"url" : "http://localhost:8080/thm",
+	"logfile" : "thm.log"
+}
