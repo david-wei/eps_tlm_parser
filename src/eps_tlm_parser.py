@@ -254,6 +254,12 @@ class EpsTlmData:
 		for cmd in EpsTlmData.VALID_COMMANDS:
 			self.sortData(cmd)
 
+	# ++++++++++++++++++++++++++
+
+	def deleteData(self):
+		for cmd in EpsTlmData.VALID_COMMANDS:
+			self.data[cmd] = list()
+
 
 
 # ###############################
