@@ -35,6 +35,7 @@
     <Compile Include="thm_processor.py" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="eps\" />
     <Folder Include="example-files\" />
     <Folder Include="example-files\log\" />
     <Folder Include="example-files\pl\" />
