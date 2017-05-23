@@ -60,10 +60,13 @@ class EpsTlmGuiApp(QWidget):
 		self.convertFileButton.setText("Convert File")
 		self.convertFolderButton = QPushButton()
 		self.convertFolderButton.setText("Convert Folder")
+		self.saveButton = QPushButton()
+		self.saveButton.setText("Save Data")
 		self.controlsLayout.addWidget(self.openFileButton)
 		self.controlsLayout.addWidget(self.openFolderButton)
 		self.controlsLayout.addWidget(self.convertFileButton)
 		self.controlsLayout.addWidget(self.convertFolderButton)
+		self.controlsLayout.addWidget(self.saveButton)
 		self.layout.addLayout(self.controlsLayout)
 
 		# Helper Widgets
@@ -92,6 +95,7 @@ class EpsTlmGuiApp(QWidget):
 
 	def __setupConnections(self):
 		self.openFileButton.clicked.connect(self.openFileDialog)
+		self.saveButton.clicked.connect(self.saveFileDialog)
 
 
 	def __setupDataSelection(self):
@@ -109,13 +113,20 @@ class EpsTlmGuiApp(QWidget):
 
 	def openFileDialog(self):
 		fileName, _ = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "", "EPS Files (*.tlm)")
-		if fileName:
+		if fileName and self.status == Status.OK:
 			self.status = Status.BUSY
-			self.eps.deleteData()
+			#self.eps.deleteData()	# DEBUG: S-Band analysis
 			self.eps.setFile(fileName)
 			self.eps.readFile()
 			self.status = Status.OK
 
+	def saveFileDialog(self):
+		fileName, _ = QFileDialog.getSaveFileName(self, "QFileDialog.getSaveFileName()", "", "Comma Separated Value Files (*.csv)")
+		if fileName and self.status == Status.OK:
+			self.status = Status.BUSY
+			#self.eps.writeAllDataToFile(fileName)	# Correct Call
+			self.eps.writeDataToFile(fileName, (EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.SBAND, EpsTlmData.TYPE.CURRENT))	# DEBUG: S-Band analysis
+			self.status = Status.OK
 
 
 
