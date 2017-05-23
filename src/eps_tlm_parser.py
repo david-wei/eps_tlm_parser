@@ -383,6 +383,36 @@ class EpsTlmFileReader(EpsTlmData):
 			ret &= self.readFile()
 		return ret
 
+	# ++++++++++++++++++++++++++
+
+	def writeDataToFile(self, filename, cmd):
+		if not self.commandIsValid(cmd[0].value, cmd[1].value, cmd[2].value):
+			print("Invalid command")
+			return False
+
+		fileExists = False
+		if os.path.isfile(filename):
+			fileExists = True
+
+		of = open(filename, "a")
+		if not fileExists: of.write("DEVICE;SOURCE;TYPE;DATE;TIME;VALUE\n")
+
+		for item in self.data[cmd]:
+			tmp = str(item[0]).split(" ")
+			of.write((cmd[0].name + ";" + 
+				cmd[1].name + ";" +
+				cmd[2].name + ";" +
+				tmp[0] + ";" + tmp[1] +
+				";{:f};\n").format(item[1]))
+
+		of.close()
+
+	# ++++++++++++++++++++++++++
+
+	def writeAllDataToFile(self, filename):
+		for cmd in EpsTlmData.VALID_COMMANDS:
+			self.writeDataToFile(filename, cmd)
+
 
 
 # ###############################
