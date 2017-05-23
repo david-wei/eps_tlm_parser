@@ -2,7 +2,7 @@
 
 from eps_tlm_parser import *
 
-import sys, random
+import sys
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -30,6 +30,7 @@ class EpsTlmGuiApp(QWidget):
 		
 		# Logical Properties
 		self.status = Status.OK
+		self.lastDirectory = ""
 
 		# Plot Data
 		self.eps = EpsTlmFileReader()
@@ -52,21 +53,14 @@ class EpsTlmGuiApp(QWidget):
 
 		# Overall Controls
 		self.controlsLayout = QHBoxLayout()
-		self.openFileButton = QPushButton()
-		self.openFileButton.setText("Open File")
-		self.openFolderButton = QPushButton()
-		self.openFolderButton.setText("Open Folder")
-		self.convertFileButton = QPushButton()
-		self.convertFileButton.setText("Convert File")
-		self.convertFolderButton = QPushButton()
-		self.convertFolderButton.setText("Convert Folder")
-		self.saveButton = QPushButton()
-		self.saveButton.setText("Save Data")
-		self.controlsLayout.addWidget(self.openFileButton)
-		self.controlsLayout.addWidget(self.openFolderButton)
-		self.controlsLayout.addWidget(self.convertFileButton)
-		self.controlsLayout.addWidget(self.convertFolderButton)
-		self.controlsLayout.addWidget(self.saveButton)
+		self.openFilesButton = QPushButton("Open Files")
+		self.saveDataButton = QPushButton("Save Data")
+		self.convertFilesButton = QPushButton("Convert Files")
+		self.resetDataButton = QPushButton("Reset Data")
+		self.controlsLayout.addWidget(self.openFilesButton)
+		self.controlsLayout.addWidget(self.saveDataButton)
+		self.controlsLayout.addWidget(self.convertFilesButton)
+		self.controlsLayout.addWidget(self.resetDataButton)
 		self.layout.addLayout(self.controlsLayout)
 
 		# Helper Widgets
@@ -75,12 +69,13 @@ class EpsTlmGuiApp(QWidget):
 		self.layout.addWidget(self.loadingBar)
 
 		# Plotting Widgets
-		self.plotCanvas = PlotCanvas(self, width = 5, height = 4)
+		self.plotCanvas = PlotCanvas(self)
 		self.layout.addWidget(self.plotCanvas)
 		self.timeSliderStart = QSlider()
 		self.timeSliderStart.setOrientation(Qt.Horizontal)
 		self.timeSliderEnd = QSlider()
 		self.timeSliderEnd.setOrientation(Qt.Horizontal)
+		self.timeSliderEnd.setValue(100)
 		self.timeSliderLayout = QHBoxLayout()
 		self.timeSliderLayout.addWidget(self.timeSliderStart)
 		self.timeSliderLayout.addWidget(self.timeSliderEnd)
@@ -94,8 +89,10 @@ class EpsTlmGuiApp(QWidget):
 
 
 	def __setupConnections(self):
-		self.openFileButton.clicked.connect(self.openFileDialog)
-		self.saveButton.clicked.connect(self.saveFileDialog)
+		self.openFilesButton.clicked.connect(self.openFilesDialog)
+		self.saveDataButton.clicked.connect(self.saveDataDialog)
+		self.convertFilesButton.clicked.connect(self.convertFilesDialog)
+		self.resetDataButton.clicked.connect(self.resetDataDialog)
 
 
 	def __setupDataSelection(self):
@@ -111,43 +108,68 @@ class EpsTlmGuiApp(QWidget):
 			dataSelectionModel.setData(dataSelectionModel.index(0, self.TYPE), cmd[2].name)
 
 
-	def openFileDialog(self):
-		fileName, _ = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "", "EPS Files (*.tlm)")
-		if fileName and self.status == Status.OK:
+	def openFilesDialog(self):
+		fileNames, _ = QFileDialog().getOpenFileNames(self, "Load files", self.lastDirectory, "EPS Files (*.tlm)")
+		if fileNames and self.status == Status.OK:
 			self.status = Status.BUSY
-			#self.eps.deleteData()	# DEBUG: S-Band analysis
-			self.eps.setFile(fileName)
-			self.eps.readFile()
+			self.lastDirectory = os.path.dirname(fileNames[0])
+			self.eps.setFile(fileNames)
+			self.eps.readFileList()
+			self.eps.sortAllData()
 			self.status = Status.OK
 
-	def saveFileDialog(self):
-		fileName, _ = QFileDialog.getSaveFileName(self, "QFileDialog.getSaveFileName()", "", "Comma Separated Value Files (*.csv)")
-		if fileName and self.status == Status.OK:
+	def convertFilesDialog(self):
+		fileNames, _ = QFileDialog().getOpenFileNames(self, "Convert files", self.lastDirectory, "EPS Files (*.tlm)")
+		if fileNames and self.status == Status.OK:
 			self.status = Status.BUSY
-			#self.eps.writeAllDataToFile(fileName)	# Correct Call
-			self.eps.writeDataToFile(fileName, (EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.SBAND, EpsTlmData.TYPE.CURRENT))	# DEBUG: S-Band analysis
+			self.lastDirectory = os.path.dirname(fileNames[0])
+			tmpEps = EpsTlmFileReader(mode = "o")
+			tmpEps.setFile(fileNames)
+			tmpEps.readFileList()
 			self.status = Status.OK
 
+	def saveDataDialog(self):
+		fileName, _ = QFileDialog.getSaveFileName(self, "QFileDialog.getSaveFileName()", self.lastDirectory, "Comma Separated Value Files (*.csv)")
+		if fileName and self.status == Status.OK:
+			self.status = Status.BUSY
+			self.lastDirectory = os.path.dirname(fileName)
+			self.eps.writeAllDataToFile(fileName)
+			self.status = Status.OK
 
+	def resetDataDialog(self):
+		reply = QMessageBox.question(self, "Reset Data", "Are you sure you want to reset the data?", QMessageBox.Yes, QMessageBox.No)
+		if reply == QMessageBox.Yes:
+			self.eps.deleteData()
+
+
+	def selectedCmd(self):
+		return self.plotCanvas.cmd
 
 
 class PlotCanvas(FigureCanvas):
 
-	def __init__(self, parent = None, width = 5, height = 4, dpi = 100):
-		fig = Figure()
-		self.axes = fig.add_subplot(111)
+	def __init__(self, parent = None):
+		fig = Figure(facecolor = "None", edgecolor = "None")
 		FigureCanvas.__init__(self, fig)
-		self.setParent(parent)
-
 		FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
 		FigureCanvas.updateGeometry(self)
-		self.plot()
+
+		self.axes = self.figure.add_subplot(111)
+		self.axes.axis("off")
+		self.axes.set_facecolor("None")
+
+	def setData(self, cmd, data):
+		self.pltdata = list(zip(*data))
 
 	def plot(self):
-		data = [random.random() for i in range(25)]
-		ax = self.figure.add_subplot(111)
-		ax.plot(data, "r-")
-		ax.set_title("Matplotlib Example")
+		#self.pltdata = [(1, 2, 3), (2, 4, 6)]
+		#self.cmd = EpsTlmData.VALID_COMMANDS[10]
+
+		self.axes.cla()
+		self.axes.plot(self.pltdata[0], self.pltdata[1], "ro-")
+		self.axes.set_xlabel("Time")
+		self.axes.set_ylabel(str(self.cmd[2].name) + " [" + EpsTlmData.TYPE.physicalUnit(self.cmd[2]) + "]")
+		self.axes.legend([str(self.cmd[1].name)])
 		self.draw()
 
 
