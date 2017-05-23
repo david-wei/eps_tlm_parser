@@ -67,6 +67,20 @@ class EpsTlmData:
 		CURRENT3V3		= 14
 		CURRENT5V		= 15
 		BLOCK_INIT		= 255
+
+		def physicalUnit(type):
+			if type == EpsTlmData.TYPE.VOLTAGE:
+				return "V"
+			elif type == EpsTlmData.TYPE.CURRENT or type == EpsTlmData.TYPE.CURRENTB or type == EpsTlmData.TYPE.CURRENT3V3 or type == EpsTlmData.TYPE.CURRENT5V:
+				return "mA"
+			elif type == EpsTlmData.TYPE.TEMPERATURE or type == EpsTlmData.TYPE.TEMPERATURE2 or type == EpsTlmData.TYPE.TEMPERATURE3:
+				return "°C"
+			elif type == EpsTlmData.TYPE.MANRESET or type == EpsTlmData.TYPE.SOFTRESET or type == EpsTlmData.TYPE.WDRESET or type == EpsTlmData.TYPE.BRWNOUTRESET:
+				return "count"
+			elif type == EpsTlmData.TYPE.HEATER_STATE1 or type == EpsTlmData.TYPE.HEATER_STATE2:
+				return "on/off"
+			else:
+				return "1"
 		
 	# ++++++++++++++++++++++++++
 
@@ -277,22 +291,28 @@ class EpsTlmFileReader(EpsTlmData):
 		EpsTlmData.__init__(self, mode)
 		errorCount = 0
 		itemCount = 0
-		self.setFile(fileName)
 		self.setFolder("")
+		self.setFile(fileName)
 
 	# ++++++++++++++++++++++++++
 
 	def setFile(self, fileName):
-		self.tlmFileName = fileName
-		if fileName[-4:] == ".tlm":
-			self.csvFileName = fileName[:-4] + ".csv"
+		if type(fileName) == list:
+			self.fileList = list()
+			for file in fileName:
+				if os.path.isfile(file): self.fileList.append(file)
+
 		else:
-			self.csvFileName = fileName + ".csv"
-		if os.path.exists(self.csvFileName):
-			i = 1
-			while os.path.exists(self.csvFileName[:-4] + "(" + str(i) + ").csv"):
-				i += 1
-			self.csvFileName = self.csvFileName[:-4] + "(" + str(i) + ").csv"
+			self.tlmFileName = fileName
+			if fileName[-4:] == ".tlm":
+				self.csvFileName = fileName[:-4] + ".csv"
+			else:
+				self.csvFileName = fileName + ".csv"
+			if os.path.exists(self.csvFileName):
+				i = 1
+				while os.path.exists(self.csvFileName[:-4] + "(" + str(i) + ").csv"):
+					i += 1
+				self.csvFileName = self.csvFileName[:-4] + "(" + str(i) + ").csv"
 
 	# ++++++++++++++++++++++++++
 
@@ -376,7 +396,7 @@ class EpsTlmFileReader(EpsTlmData):
 
 	# ++++++++++++++++++++++++++
 
-	def readFolder(self):
+	def readFileList(self):
 		ret = True
 		for file in self.fileList:
 			self.setFile(file)
@@ -438,7 +458,7 @@ if __name__ == "__main__":
 		isFolder = True
 		fr.setFolder(fileName)
 		print("Parsing files", fr.fileList)
-		ret = fr.readFolder()
+		ret = fr.readFileList()
 	else:
 		fr.setFile(fileName)
 		print("Parsing file", fileName)
