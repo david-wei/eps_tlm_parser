@@ -48,6 +48,7 @@ class EpsTlmGuiApp(QWidget):
 		self.dataSelectionTreeview.setRootIsDecorated(False)
 		self.dataSelectionTreeview.setAlternatingRowColors(True)
 		self.__setupDataSelection()
+		self.dataSelectionTreeview.setMaximumWidth(350)
 		self.mainLayout.addWidget(self.dataSelectionTreeview)
 		self.mainLayout.addLayout(self.layout)
 
@@ -94,6 +95,8 @@ class EpsTlmGuiApp(QWidget):
 		self.convertFilesButton.clicked.connect(self.convertFilesDialog)
 		self.resetDataButton.clicked.connect(self.resetDataDialog)
 
+		self.dataSelectionTreeview.selectionModel().selectionChanged.connect(self.updateDataSelection)
+
 
 	def __setupDataSelection(self):
 		dataSelectionModel = QStandardItemModel(0, 3, self)
@@ -102,12 +105,17 @@ class EpsTlmGuiApp(QWidget):
 		dataSelectionModel.setHeaderData(self.TYPE, Qt.Horizontal, "Type")
 		self.dataSelectionTreeview.setModel(dataSelectionModel)
 		for cmd in EpsTlmData.VALID_COMMANDS:
-			dataSelectionModel.insertRow(0)
+			"""dataSelectionModel.insertRow(0)
 			dataSelectionModel.setData(dataSelectionModel.index(0, self.DEVICE), cmd[0].name)
 			dataSelectionModel.setData(dataSelectionModel.index(0, self.SOURCE), cmd[1].name)
-			dataSelectionModel.setData(dataSelectionModel.index(0, self.TYPE), cmd[2].name)
+			dataSelectionModel.setData(dataSelectionModel.index(0, self.TYPE), cmd[2].name)"""
+			dataSelectionModel.appendRow([
+				QStandardItem(cmd[0].name),
+				QStandardItem(cmd[1].name),
+				QStandardItem(cmd[2].name)
+				])
 
-
+	@pyqtSlot()
 	def openFilesDialog(self):
 		fileNames, _ = QFileDialog().getOpenFileNames(self, "Load files", self.lastDirectory, "EPS Files (*.tlm)")
 		if fileNames and self.status == Status.OK:
@@ -118,6 +126,7 @@ class EpsTlmGuiApp(QWidget):
 			self.eps.sortAllData()
 			self.status = Status.OK
 
+	@pyqtSlot()
 	def convertFilesDialog(self):
 		fileNames, _ = QFileDialog().getOpenFileNames(self, "Convert files", self.lastDirectory, "EPS Files (*.tlm)")
 		if fileNames and self.status == Status.OK:
@@ -128,6 +137,7 @@ class EpsTlmGuiApp(QWidget):
 			tmpEps.readFileList()
 			self.status = Status.OK
 
+	@pyqtSlot()
 	def saveDataDialog(self):
 		fileName, _ = QFileDialog.getSaveFileName(self, "QFileDialog.getSaveFileName()", self.lastDirectory, "Comma Separated Value Files (*.csv)")
 		if fileName and self.status == Status.OK:
@@ -136,14 +146,22 @@ class EpsTlmGuiApp(QWidget):
 			self.eps.writeAllDataToFile(fileName)
 			self.status = Status.OK
 
+	@pyqtSlot()
 	def resetDataDialog(self):
 		reply = QMessageBox.question(self, "Reset Data", "Are you sure you want to reset the data?", QMessageBox.Yes, QMessageBox.No)
 		if reply == QMessageBox.Yes:
 			self.eps.deleteData()
 
-
-	def selectedCmd(self):
+	def getSelectedCmd(self):
 		return self.plotCanvas.cmd
+
+
+	@pyqtSlot(QItemSelection, QItemSelection)
+	def updateDataSelection(self, selected, deselected):
+		index = selected.indexes()[0].row()
+		cmd = EpsTlmData.VALID_COMMANDS[index]
+		if self.plotCanvas.setData(cmd, self.eps.data[cmd]):
+			self.plotCanvas.plot()
 
 
 class PlotCanvas(FigureCanvas):
@@ -156,17 +174,18 @@ class PlotCanvas(FigureCanvas):
 
 		self.axes = self.figure.add_subplot(111)
 		self.axes.axis("off")
-		self.axes.set_facecolor("None")
+		#self.axes.set_facecolor("None")
 
 	def setData(self, cmd, data):
+		if len(data) == 0:
+			return False
+		self.cmd = cmd
 		self.pltdata = list(zip(*data))
+		return True
 
 	def plot(self):
-		#self.pltdata = [(1, 2, 3), (2, 4, 6)]
-		#self.cmd = EpsTlmData.VALID_COMMANDS[10]
-
 		self.axes.cla()
-		self.axes.plot(self.pltdata[0], self.pltdata[1], "ro-")
+		self.axes.plot(self.pltdata[0], self.pltdata[1], "b-", markersize = 2)
 		self.axes.set_xlabel("Time")
 		self.axes.set_ylabel(str(self.cmd[2].name) + " [" + EpsTlmData.TYPE.physicalUnit(self.cmd[2]) + "]")
 		self.axes.legend([str(self.cmd[1].name)])
