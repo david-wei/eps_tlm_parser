@@ -74,7 +74,7 @@ class EpsTlmData:
 			elif type == EpsTlmData.TYPE.CURRENT or type == EpsTlmData.TYPE.CURRENTB or type == EpsTlmData.TYPE.CURRENT3V3 or type == EpsTlmData.TYPE.CURRENT5V:
 				return "mA"
 			elif type == EpsTlmData.TYPE.TEMPERATURE or type == EpsTlmData.TYPE.TEMPERATURE2 or type == EpsTlmData.TYPE.TEMPERATURE3:
-				return "°C"
+				return "K"
 			elif type == EpsTlmData.TYPE.MANRESET or type == EpsTlmData.TYPE.SOFTRESET or type == EpsTlmData.TYPE.WDRESET or type == EpsTlmData.TYPE.BRWNOUTRESET:
 				return "count"
 			elif type == EpsTlmData.TYPE.HEATER_STATE1 or type == EpsTlmData.TYPE.HEATER_STATE2:
@@ -275,7 +275,6 @@ class EpsTlmData:
 			self.data[cmd] = list()
 
 
-
 # ###############################
 # #####     File Reader     #####
 # ###############################
@@ -293,6 +292,8 @@ class EpsTlmFileReader(EpsTlmData):
 		itemCount = 0
 		self.setFolder("")
 		self.setFile(fileName)
+		self.setProgressCallback(do_nothing)
+
 
 	# ++++++++++++++++++++++++++
 
@@ -398,9 +399,14 @@ class EpsTlmFileReader(EpsTlmData):
 
 	def readFileList(self):
 		ret = True
+		it = 0
+		self.progressCallback(float(it) / len(self.fileList))
 		for file in self.fileList:
 			self.setFile(file)
 			ret &= self.readFile()
+			it += 1
+			self.progressCallback(float(it) / len(self.fileList))
+
 		return ret
 
 	# ++++++++++++++++++++++++++
@@ -430,9 +436,22 @@ class EpsTlmFileReader(EpsTlmData):
 	# ++++++++++++++++++++++++++
 
 	def writeAllDataToFile(self, filename):
+		it = 0
+		self.progressCallback(float(it) / len(EpsTlmData.VALID_COMMANDS))
 		for cmd in EpsTlmData.VALID_COMMANDS:
 			self.writeDataToFile(filename, cmd)
+			it += 1
+			self.progressCallback(float(it) / len(EpsTlmData.VALID_COMMANDS))
+			
+	# ++++++++++++++++++++++++++
 
+	def setProgressCallback(self, callback_function):
+		self.progressCallback = callback_function
+	def resetProgressCallback(self):
+		self.progressCallback = do_nothing
+
+def do_nothing(var = 0):
+	pass
 
 
 # ###############################

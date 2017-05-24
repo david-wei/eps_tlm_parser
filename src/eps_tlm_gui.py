@@ -34,6 +34,7 @@ class EpsTlmGuiApp(QWidget):
 
 		# Plot Data
 		self.eps = EpsTlmFileReader()
+		self.eps.setProgressCallback(self.updateLoadingBar)
 		self.data = list()
 
 		# General Window Attributes
@@ -83,6 +84,7 @@ class EpsTlmGuiApp(QWidget):
 		self.layout.addLayout(self.timeSliderLayout)
 
 		# Initial Visibility
+		self.loadingBar.setVisible(False)
 		self.show()
 
 		# Connections
@@ -115,15 +117,20 @@ class EpsTlmGuiApp(QWidget):
 				QStandardItem(cmd[2].name)
 				])
 
+	def updateLoadingBar(self, progress):
+		self.loadingBar.setValue(progress * 100)
+
 	@pyqtSlot()
 	def openFilesDialog(self):
 		fileNames, _ = QFileDialog().getOpenFileNames(self, "Load files", self.lastDirectory, "EPS Files (*.tlm)")
 		if fileNames and self.status == Status.OK:
 			self.status = Status.BUSY
 			self.lastDirectory = os.path.dirname(fileNames[0])
+			self.loadingBar.setVisible(True)
 			self.eps.setFile(fileNames)
 			self.eps.readFileList()
 			self.eps.sortAllData()
+			self.loadingBar.setVisible(False)
 			self.status = Status.OK
 
 	@pyqtSlot()
@@ -132,9 +139,12 @@ class EpsTlmGuiApp(QWidget):
 		if fileNames and self.status == Status.OK:
 			self.status = Status.BUSY
 			self.lastDirectory = os.path.dirname(fileNames[0])
+			self.loadingBar.setVisible(True)
 			tmpEps = EpsTlmFileReader(mode = "o")
+			tmpEps.setProgressCallback(self.updateLoadingBar)
 			tmpEps.setFile(fileNames)
 			tmpEps.readFileList()
+			self.loadingBar.setVisible(False)
 			self.status = Status.OK
 
 	@pyqtSlot()
@@ -143,7 +153,9 @@ class EpsTlmGuiApp(QWidget):
 		if fileName and self.status == Status.OK:
 			self.status = Status.BUSY
 			self.lastDirectory = os.path.dirname(fileName)
+			self.loadingBar.setVisible(True)
 			self.eps.writeAllDataToFile(fileName)
+			self.loadingBar.setVisible(False)
 			self.status = Status.OK
 
 	@pyqtSlot()
