@@ -17,12 +17,13 @@ class Status:
 	OK = 0
 	BUSY = 1
 
+
+	
+# ##############################
+# PyQt5 Widget
+# ##############################
+
 class EpsTlmGuiApp(QWidget):
-	"""
-	class CMD:
-		DEVICE = 0
-		SOURCE = 1
-		TYPE = 2"""
 	DEVICE, SOURCE, TYPE = range(3)
 
 	def __init__(self):
@@ -75,13 +76,18 @@ class EpsTlmGuiApp(QWidget):
 		self.layout.addWidget(self.plotCanvas)
 		self.timeSliderStart = QSlider()
 		self.timeSliderStart.setOrientation(Qt.Horizontal)
+		self.timeSliderStart.setRange(0, 0)
+		self.timeTextStart = QLabel("No data\navailable")
 		self.timeSliderEnd = QSlider()
 		self.timeSliderEnd.setOrientation(Qt.Horizontal)
-		self.timeSliderEnd.setValue(100)
-		self.timeSliderLayout = QHBoxLayout()
-		self.timeSliderLayout.addWidget(self.timeSliderStart)
-		self.timeSliderLayout.addWidget(self.timeSliderEnd)
-		self.layout.addLayout(self.timeSliderLayout)
+		self.timeSliderEnd.setRange(0, 0)
+		self.timeTextEnd = QLabel("No data\navailable")
+		self.timeLayout = QHBoxLayout()
+		self.timeLayout.addWidget(self.timeTextStart)
+		self.timeLayout.addWidget(self.timeSliderStart)
+		self.timeLayout.addWidget(self.timeSliderEnd)
+		self.timeLayout.addWidget(self.timeTextEnd)
+		self.layout.addLayout(self.timeLayout)
 
 		# Initial Visibility
 		self.loadingBar.setVisible(False)
@@ -91,6 +97,10 @@ class EpsTlmGuiApp(QWidget):
 		self.__setupConnections()
 
 
+	# ++++++++++++++++++++++++++++++
+	# Setup
+	# ++++++++++++++++++++++++++++++
+
 	def __setupConnections(self):
 		self.openFilesButton.clicked.connect(self.openFilesDialog)
 		self.saveDataButton.clicked.connect(self.saveDataDialog)
@@ -98,6 +108,8 @@ class EpsTlmGuiApp(QWidget):
 		self.resetDataButton.clicked.connect(self.resetDataDialog)
 
 		self.dataSelectionTreeview.selectionModel().selectionChanged.connect(self.updateDataSelection)
+		self.timeSliderStart.valueChanged.connect(self.updateTimeTextStart)
+		self.timeSliderEnd.valueChanged.connect(self.updateTimeTextEnd)
 
 
 	def __setupDataSelection(self):
@@ -107,10 +119,6 @@ class EpsTlmGuiApp(QWidget):
 		dataSelectionModel.setHeaderData(self.TYPE, Qt.Horizontal, "Type")
 		self.dataSelectionTreeview.setModel(dataSelectionModel)
 		for cmd in EpsTlmData.VALID_COMMANDS:
-			"""dataSelectionModel.insertRow(0)
-			dataSelectionModel.setData(dataSelectionModel.index(0, self.DEVICE), cmd[0].name)
-			dataSelectionModel.setData(dataSelectionModel.index(0, self.SOURCE), cmd[1].name)
-			dataSelectionModel.setData(dataSelectionModel.index(0, self.TYPE), cmd[2].name)"""
 			dataSelectionModel.appendRow([
 				QStandardItem(cmd[0].name),
 				QStandardItem(cmd[1].name),
@@ -119,6 +127,11 @@ class EpsTlmGuiApp(QWidget):
 
 	def updateLoadingBar(self, progress):
 		self.loadingBar.setValue(progress * 100)
+
+		
+	# ++++++++++++++++++++++++++++++
+	# Dialogs
+	# ++++++++++++++++++++++++++++++
 
 	@pyqtSlot()
 	def openFilesDialog(self):
@@ -164,6 +177,11 @@ class EpsTlmGuiApp(QWidget):
 		if reply == QMessageBox.Yes:
 			self.eps.deleteData()
 
+
+	# ++++++++++++++++++++++++++++++
+	# Data Selection
+	# ++++++++++++++++++++++++++++++
+
 	def getSelectedCmd(self):
 		return self.plotCanvas.cmd
 
@@ -172,9 +190,46 @@ class EpsTlmGuiApp(QWidget):
 	def updateDataSelection(self, selected, deselected):
 		index = selected.indexes()[0].row()
 		cmd = EpsTlmData.VALID_COMMANDS[index]
+		
+		if len(self.eps.data[cmd]) > 0:
+			self.timeSliderStart.setRange(0, len(self.eps.data[cmd]) - 1)
+			self.timeSliderEnd.setRange(0, len(self.eps.data[cmd]) - 1)
+			self.timeSliderStart.setValue(0)
+			self.timeSliderEnd.setValue(len(self.eps.data[cmd]) - 1)
+			self.timeTextStart.setText(self.eps.data[self.getSelectedCmd()][0][0].strftime("%d/%m/%y\n%H:%M:%S"))
+			self.timeTextEnd.setText(self.eps.data[self.getSelectedCmd()][len(self.eps.data[cmd]) - 1][0].strftime("%d/%m/%y\n%H:%M:%S"))
+
 		if self.plotCanvas.setData(cmd, self.eps.data[cmd]):
 			self.plotCanvas.plot()
 
+			
+	# ++++++++++++++++++++++++++++++
+	# Timeline
+	# ++++++++++++++++++++++++++++++
+
+	@pyqtSlot(int)
+	def updateTimeTextStart(self, newIndex):
+		if len(self.eps.data[self.getSelectedCmd()]) == 0:
+			self.timeTextStart.setText("No data\navailable")
+			self.timeSliderEnd.setRange(0, 0)
+		else:
+			self.timeTextStart.setText(self.eps.data[self.getSelectedCmd()][newIndex][0].strftime("%d/%m/%y\n%H:%M:%S"))
+			self.timeSliderEnd.setMinimum(newIndex)
+		
+	@pyqtSlot(int)
+	def updateTimeTextEnd(self, newIndex):
+		if len(self.eps.data[self.getSelectedCmd()]) == 0:
+			self.timeTextStart.setText("No data\navailable")
+			self.timeSliderStart.setRange(0, 0)
+		else:
+			self.timeTextEnd.setText(self.eps.data[self.getSelectedCmd()][newIndex][0].strftime("%d/%m/%y\n%H:%M:%S"))
+			self.timeSliderStart.setMaximum(newIndex)
+
+
+
+# ##############################
+# Matplotlib Canvas
+# ##############################
 
 class PlotCanvas(FigureCanvas):
 
@@ -184,6 +239,7 @@ class PlotCanvas(FigureCanvas):
 		FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
 		FigureCanvas.updateGeometry(self)
 
+		self.cmd = EpsTlmData.VALID_COMMANDS[0]		# some arbitrary init cmd
 		self.axes = self.figure.add_subplot(111)
 		self.axes.axis("off")
 		#self.axes.set_facecolor("None")
@@ -192,10 +248,11 @@ class PlotCanvas(FigureCanvas):
 		if len(data) == 0:
 			return False
 		self.cmd = cmd
-		self.pltdata = list(zip(*data))
+		self.data = data
 		return True
 
-	def plot(self):
+	def plot(self, leftIndex = None, rightIndex = None):
+		self.pltdata = list(zip(*self.data[leftIndex:rightIndex]))
 		self.axes.cla()
 		self.axes.plot(self.pltdata[0], self.pltdata[1], "b-", markersize = 2)
 		self.axes.set_xlabel("Time")
@@ -204,10 +261,9 @@ class PlotCanvas(FigureCanvas):
 		self.draw()
 
 
-
-
-
-
+# ##############################
+# Main
+# ##############################
 
 if __name__ == "__main__":
 	print("EPS Telemetry Reader GUI Application")

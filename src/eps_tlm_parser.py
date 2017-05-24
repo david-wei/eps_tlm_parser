@@ -274,9 +274,29 @@ class EpsTlmData:
 		for cmd in EpsTlmData.VALID_COMMANDS:
 			self.data[cmd] = list()
 
+	# ++++++++++++++++++++++++++
+
+	def getDataIndexFromTime(self, cmd, time, boundary = "left"):
+		if not self.commandIsValid(cmd): return -1
+		if boundary != "left" and boundary != "right": return -2
+		if len(self.data[cmd]) == 0: return -3
+
+		if boundary == "left":
+			it = 0
+			for item in self.data[cmd]:
+				if time > item[0]:
+					return max(0, it - 1)
+				it += 1
+		elif boundary == "right":
+			it = len(self.data[cmd])
+			for item in reversed(self.data[cmd]):
+				if time < item[0]:
+					return min(len(self.data[cmd]), it + 1)
+				it -= 1
+
 
 # ###############################
-# #####     File Reader     #####
+# #######   File Reader   #######
 # ###############################
 
 class EpsTlmFileReader(EpsTlmData):
@@ -449,6 +469,10 @@ class EpsTlmFileReader(EpsTlmData):
 		self.progressCallback = callback_function
 	def resetProgressCallback(self):
 		self.progressCallback = do_nothing
+
+
+
+# ###############################
 
 def do_nothing(var = 0):
 	pass
