@@ -76,17 +76,19 @@ class EpsTlmGuiApp(QWidget):
 		self.layout.addWidget(self.plotCanvas)
 		self.timeSliderStart = QSlider()
 		self.timeSliderStart.setOrientation(Qt.Horizontal)
-		self.timeSliderStart.setRange(0, 0)
-		self.timeTextStart = QLabel("No data\navailable")
 		self.timeSliderEnd = QSlider()
 		self.timeSliderEnd.setOrientation(Qt.Horizontal)
-		self.timeSliderEnd.setRange(0, 0)
-		self.timeTextEnd = QLabel("No data\navailable")
+		self.timeTextStart = QLabel()
+		self.timeTextEnd = QLabel()
+		self.resetTimeSliders()
+		self.timeSeparation = QFrame()
+		self.timeSeparation.setFrameShape(QFrame.VLine)
 		self.timeLayout = QHBoxLayout()
-		self.timeLayout.addWidget(self.timeTextStart)
 		self.timeLayout.addWidget(self.timeSliderStart)
-		self.timeLayout.addWidget(self.timeSliderEnd)
+		self.timeLayout.addWidget(self.timeTextStart)
+		self.timeLayout.addWidget(self.timeSeparation)
 		self.timeLayout.addWidget(self.timeTextEnd)
+		self.timeLayout.addWidget(self.timeSliderEnd)
 		self.layout.addLayout(self.timeLayout)
 
 		# Initial Visibility
@@ -108,8 +110,8 @@ class EpsTlmGuiApp(QWidget):
 		self.resetDataButton.clicked.connect(self.resetDataDialog)
 
 		self.dataSelectionTreeview.selectionModel().selectionChanged.connect(self.updateDataSelection)
-		self.timeSliderStart.valueChanged.connect(self.updateTimeTextStart)
-		self.timeSliderEnd.valueChanged.connect(self.updateTimeTextEnd)
+		self.timeSliderStart.valueChanged.connect(self.updateTimeStart)
+		self.timeSliderEnd.valueChanged.connect(self.updateTimeEnd)
 
 
 	def __setupDataSelection(self):
@@ -176,6 +178,7 @@ class EpsTlmGuiApp(QWidget):
 		reply = QMessageBox.question(self, "Reset Data", "Are you sure you want to reset the data?", QMessageBox.Yes, QMessageBox.No)
 		if reply == QMessageBox.Yes:
 			self.eps.deleteData()
+			self.resetTimeSliders()
 
 
 	# ++++++++++++++++++++++++++++++
@@ -208,23 +211,30 @@ class EpsTlmGuiApp(QWidget):
 	# ++++++++++++++++++++++++++++++
 
 	@pyqtSlot(int)
-	def updateTimeTextStart(self, newIndex):
+	def updateTimeStart(self, newIndex):
 		if len(self.eps.data[self.getSelectedCmd()]) == 0:
 			self.timeTextStart.setText("No data\navailable")
 			self.timeSliderEnd.setRange(0, 0)
 		else:
 			self.timeTextStart.setText(self.eps.data[self.getSelectedCmd()][newIndex][0].strftime("%d/%m/%y\n%H:%M:%S"))
 			self.timeSliderEnd.setMinimum(newIndex)
+			self.plotCanvas.plot(leftIndex = self.timeSliderStart.value(), rightIndex = self.timeSliderEnd.value())
 		
 	@pyqtSlot(int)
-	def updateTimeTextEnd(self, newIndex):
+	def updateTimeEnd(self, newIndex):
 		if len(self.eps.data[self.getSelectedCmd()]) == 0:
 			self.timeTextStart.setText("No data\navailable")
 			self.timeSliderStart.setRange(0, 0)
 		else:
 			self.timeTextEnd.setText(self.eps.data[self.getSelectedCmd()][newIndex][0].strftime("%d/%m/%y\n%H:%M:%S"))
 			self.timeSliderStart.setMaximum(newIndex)
+			self.plotCanvas.plot(leftIndex = self.timeSliderStart.value(), rightIndex = self.timeSliderEnd.value())
 
+	def resetTimeSliders(self):
+		self.timeSliderStart.setRange(0, 0)
+		self.timeTextStart.setText("No data\navailable")
+		self.timeSliderEnd.setRange(0, 0)
+		self.timeTextEnd.setText("No data\navailable")
 
 
 # ##############################
@@ -240,6 +250,7 @@ class PlotCanvas(FigureCanvas):
 		FigureCanvas.updateGeometry(self)
 
 		self.cmd = EpsTlmData.VALID_COMMANDS[0]		# some arbitrary init cmd
+		self.data = list()
 		self.axes = self.figure.add_subplot(111)
 		self.axes.axis("off")
 		#self.axes.set_facecolor("None")
@@ -252,7 +263,10 @@ class PlotCanvas(FigureCanvas):
 		return True
 
 	def plot(self, leftIndex = None, rightIndex = None):
-		self.pltdata = list(zip(*self.data[leftIndex:rightIndex]))
+		self.pltdata = list(zip(*(self.data[leftIndex:rightIndex])))
+		if len(self.pltdata) == 0:
+			return
+
 		self.axes.cla()
 		self.axes.plot(self.pltdata[0], self.pltdata[1], "b-", markersize = 2)
 		self.axes.set_xlabel("Time")
