@@ -50,7 +50,8 @@ class EpsTlmGuiApp(QWidget):
 		self.dataSelectionTreeview.setRootIsDecorated(False)
 		self.dataSelectionTreeview.setAlternatingRowColors(True)
 		self.__setupDataSelection()
-		self.dataSelectionTreeview.setMaximumWidth(350)
+		self.dataSelectionTreeview.setMaximumWidth(240)
+		self.dataSelectionTreeview.setMinimumWidth(240)
 		self.mainLayout.addWidget(self.dataSelectionTreeview)
 		self.mainLayout.addLayout(self.layout)
 
@@ -119,7 +120,11 @@ class EpsTlmGuiApp(QWidget):
 		dataSelectionModel.setHeaderData(self.DEVICE, Qt.Horizontal, "Device")
 		dataSelectionModel.setHeaderData(self.SOURCE, Qt.Horizontal, "Source")
 		dataSelectionModel.setHeaderData(self.TYPE, Qt.Horizontal, "Type")
+		
 		self.dataSelectionTreeview.setModel(dataSelectionModel)
+		for i in range(3):
+			self.dataSelectionTreeview.header().setSectionResizeMode(i, QHeaderView.ResizeToContents)
+
 		for cmd in EpsTlmData.VALID_COMMANDS:
 			dataSelectionModel.appendRow([
 				QStandardItem(cmd[0].name),
