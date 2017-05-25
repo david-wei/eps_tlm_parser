@@ -1,0 +1,1 @@
+python "%~dp0src\eps_tlm_gui.py" %1

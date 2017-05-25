@@ -5,9 +5,9 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{17eb88ec-e80a-49b6-a1f0-9c5384d59cc7}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>./src/eps_tlm_gui.py</StartupFile>
+    <StartupFile>.\src\eps_tlm_gui.py</StartupFile>
     <SearchPath />
-    <WorkingDirectory>.</WorkingDirectory>
+    <WorkingDirectory>C:\Users\David\Documents\Visual Studio 2017\Projects\eps_tlm_parser\src</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
     <LaunchProvider>Standard Python launcher</LaunchProvider>

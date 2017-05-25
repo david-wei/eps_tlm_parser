@@ -3,6 +3,7 @@
 from eps_tlm_parser import *
 
 import sys
+import argparse
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -40,7 +41,7 @@ class EpsTlmGuiApp(QWidget):
 
 		# General Window Attributes
 		self.setWindowTitle("EPS Telemetry Reader")
-		self.setGeometry(10, 40, 900, 500)
+		self.setGeometry(10, 40, 1600, 900)
 		self.mainLayout = QHBoxLayout()
 		self.setLayout(self.mainLayout)
 		self.layout = QVBoxLayout()
@@ -58,9 +59,13 @@ class EpsTlmGuiApp(QWidget):
 		# Overall Controls
 		self.controlsLayout = QHBoxLayout()
 		self.openFilesButton = QPushButton("Open Files")
+		self.openFilesButton.setToolTip("Loads EPS telemetry files, so their data content can be displayed.")
 		self.saveDataButton = QPushButton("Save Data")
+		self.saveDataButton .setToolTip("Saves the currently loaded data into a CSV file.")
 		self.convertFilesButton = QPushButton("Convert Files")
+		self.convertFilesButton.setToolTip("Opens a dialog in which TLM files can be chosen to be converted into CSV files.")
 		self.resetDataButton = QPushButton("Reset Data")
+		self.resetDataButton.setToolTip("Removes all currently loaded data.")
 		self.controlsLayout.addWidget(self.openFilesButton)
 		self.controlsLayout.addWidget(self.saveDataButton)
 		self.controlsLayout.addWidget(self.convertFilesButton)
@@ -286,6 +291,17 @@ class PlotCanvas(FigureCanvas):
 
 if __name__ == "__main__":
 	print("EPS Telemetry Reader GUI Application")
+	parser = argparse.ArgumentParser()
+	parser.add_argument("file", nargs = "?")
+	args = parser.parse_args()
+	filename = args.file
+	
 	app = QApplication(sys.argv)
-	ex = EpsTlmGuiApp()
+	wnd = EpsTlmGuiApp()
+
+	if filename:
+		wnd.eps.setFile(filename)
+		if not wnd.eps.readFile():
+			print("File " + filename + " could not be read")
+
 	sys.exit(app.exec_())
