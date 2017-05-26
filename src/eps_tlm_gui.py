@@ -174,7 +174,7 @@ class EpsTlmGuiApp(QWidget):
 
 	@pyqtSlot()
 	def saveDataDialog(self):
-		fileName, _ = QFileDialog.getSaveFileName(self, "QFileDialog.getSaveFileName()", self.lastDirectory, "Comma Separated Value Files (*.csv)")
+		fileName, _ = QFileDialog.getSaveFileName(self, "Save data", self.lastDirectory, "Comma Separated Value Files (*.csv)")
 		if fileName and self.status == Status.OK:
 			self.status = Status.BUSY
 			self.lastDirectory = os.path.dirname(fileName)
