@@ -359,7 +359,7 @@ class EpsTlmFileReader(EpsTlmData):
 
 		if self.modeWrite:
 			of = open(self.csvFileName, "a")
-			of.write("DEVICE;SOURCE;TYPE;DATE;TIME;VALUE\n")
+			of.write("DEVICE;SOURCE;TYPE;DATE;TIME;VALUE;\n")
 
 		try:
 			with open(self.tlmFileName, "rb") as file:
@@ -441,7 +441,7 @@ class EpsTlmFileReader(EpsTlmData):
 			fileExists = True
 
 		of = open(filename, "a")
-		if not fileExists: of.write("DEVICE;SOURCE;TYPE;DATE;TIME;VALUE\n")
+		if not fileExists: of.write("DEVICE;SOURCE;TYPE;DATE;TIME;VALUE;\n")
 
 		for item in self.data[cmd]:
 			tmp = str(item[0]).split(" ")
