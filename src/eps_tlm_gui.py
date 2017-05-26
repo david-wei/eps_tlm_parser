@@ -204,16 +204,15 @@ class EpsTlmGuiApp(QWidget):
 		index = selected.indexes()[0].row()
 		cmd = EpsTlmData.VALID_COMMANDS[index]
 		
-		if len(self.eps.data[cmd]) > 0:
-			self.timeSliderStart.setRange(0, len(self.eps.data[cmd]) - 1)
-			self.timeSliderEnd.setRange(0, len(self.eps.data[cmd]) - 1)
-			self.timeSliderStart.setValue(0)
-			self.timeSliderEnd.setValue(len(self.eps.data[cmd]) - 1)
-			self.timeTextStart.setText(self.eps.data[self.getSelectedCmd()][0][0].strftime("%d/%m/%y\n%H:%M:%S"))
-			self.timeTextEnd.setText(self.eps.data[self.getSelectedCmd()][len(self.eps.data[cmd]) - 1][0].strftime("%d/%m/%y\n%H:%M:%S"))
-
 		if self.plotCanvas.setData(cmd, self.eps.data[cmd]):
-			self.plotCanvas.plot()
+			if len(self.eps.data[cmd]) > 0:
+				self.timeSliderStart.setRange(0, len(self.eps.data[cmd]) - 1)
+				self.timeSliderEnd.setRange(0, len(self.eps.data[cmd]) - 1)
+				self.timeSliderStart.setValue(0)
+				self.timeSliderEnd.setValue(len(self.eps.data[cmd]) - 1)
+				self.timeTextStart.setText(self.eps.data[self.getSelectedCmd()][0][0].strftime("%d/%m/%y\n%H:%M:%S"))
+				self.timeTextEnd.setText(self.eps.data[self.getSelectedCmd()][len(self.eps.data[cmd]) - 1][0].strftime("%d/%m/%y\n%H:%M:%S"))
+				self.plotCanvas.plot()
 
 			
 	# ++++++++++++++++++++++++++++++
