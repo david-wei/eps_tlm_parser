@@ -21,6 +21,7 @@ class EpsTlmData:
 		SSE			= 2
 		CE			= 3
 		SOFT		= 4
+		TMP			= 5		# temporary data
 		BLOCK_INIT	= 255
 
 	# ++++++++++++++++++++++++++
@@ -44,7 +45,11 @@ class EpsTlmData:
 		SSE 		= 15
 		CE 			= 16
 		TTC 		= 17
-		BTTC 		= 18	
+		BTTC 		= 18
+		PCM12V		= 19
+		PCMBATV		= 20
+		PCM5V		= 21
+		PCM3V3		= 22
 		BLOCK_INIT	= 255
 
 	# ++++++++++++++++++++++++++
@@ -139,10 +144,8 @@ class EpsTlmData:
 		# BCR
 		(DEVICE.EPS, SOURCE.BCR1, TYPE.VOLTAGE),
 		(DEVICE.EPS, SOURCE.BCR1, TYPE.CURRENT),
-		(DEVICE.EPS, SOURCE.BCR1, TYPE.CURRENTB),
 		(DEVICE.EPS, SOURCE.BCR2, TYPE.VOLTAGE),
 		(DEVICE.EPS, SOURCE.BCR2, TYPE.CURRENT),
-		(DEVICE.EPS, SOURCE.BCR2, TYPE.CURRENTB),
 		(DEVICE.EPS, SOURCE.BCR3, TYPE.VOLTAGE),
 		(DEVICE.EPS, SOURCE.BCR3, TYPE.CURRENT),
 		(DEVICE.EPS, SOURCE.BCR3, TYPE.CURRENTB),
@@ -158,7 +161,17 @@ class EpsTlmData:
 		(DEVICE.EPS, SOURCE.TTC, TYPE.SOFTRESET),
 		(DEVICE.EPS, SOURCE.TTC, TYPE.BRWNOUTRESET),
 
-		# BUS
+		# PCM
+		(DEVICE.EPS, SOURCE.PCM12V,		TYPE.VOLTAGE),
+		(DEVICE.EPS, SOURCE.PCM12V,		TYPE.CURRENT),
+		(DEVICE.EPS, SOURCE.PCMBATV,	TYPE.VOLTAGE),
+		(DEVICE.EPS, SOURCE.PCMBATV,	TYPE.CURRENT),
+		(DEVICE.EPS, SOURCE.PCM5V,		TYPE.VOLTAGE),
+		(DEVICE.EPS, SOURCE.PCM5V,		TYPE.CURRENT),
+		(DEVICE.EPS, SOURCE.PCM3V3,		TYPE.VOLTAGE),
+		(DEVICE.EPS, SOURCE.PCM3V3,		TYPE.CURRENT),
+
+		# Subsystem
 		(DEVICE.EPS, SOURCE.UHF,       TYPE.VOLTAGE),
 		(DEVICE.EPS, SOURCE.UHF,       TYPE.CURRENT),
 		(DEVICE.EPS, SOURCE.SBAND,     TYPE.VOLTAGE),
@@ -177,6 +190,8 @@ class EpsTlmData:
 		(DEVICE.EPS, SOURCE.ADCS3V3_1, TYPE.CURRENT),
 		(DEVICE.EPS, SOURCE.ADCS3V3_2, TYPE.VOLTAGE),
 		(DEVICE.EPS, SOURCE.ADCS3V3_2, TYPE.CURRENT),
+		(DEVICE.EPS, SOURCE.PL,	       TYPE.VOLTAGE),
+		(DEVICE.EPS, SOURCE.PL,	       TYPE.CURRENT),
 		(DEVICE.EPS, SOURCE.THM,       TYPE.VOLTAGE),
 		(DEVICE.EPS, SOURCE.THM,       TYPE.CURRENT),
 		
@@ -276,23 +291,34 @@ class EpsTlmData:
 
 	# ++++++++++++++++++++++++++
 
-	def getDataIndexFromTime(self, cmd, time, boundary = "left"):
+	def getDataIndexFromTime(self, cmd, time, boundary = "left", initIndexOffset = 0):
 		if not self.commandIsValid(cmd): return -1
 		if boundary != "left" and boundary != "right": return -2
 		if len(self.data[cmd]) == 0: return -3
 
 		if boundary == "left":
-			it = 0
+			it = initIndexOffset
 			for item in self.data[cmd]:
 				if time > item[0]:
 					return max(0, it - 1)
 				it += 1
 		elif boundary == "right":
-			it = len(self.data[cmd])
+			it = len(self.data[cmd]) - initIndexOffset
 			for item in reversed(self.data[cmd]):
 				if time < item[0]:
 					return min(len(self.data[cmd]), it + 1)
 				it -= 1
+
+	# ++++++++++++++++++++++++++
+
+	def calculateDerivedData(self, mode, targetCmd, primarySourceCmd, secondarySourceCmd):
+		""" modes: "+", "-", "*", "/" """
+		itPrimary = 0
+		itSecondary = 0
+		itTarget = 0
+		itTime = datetime.datetime.fromtimestamp(0)
+
+		
 
 
 # ###############################
@@ -301,7 +327,7 @@ class EpsTlmData:
 
 class EpsTlmFileReader(EpsTlmData):
 	
-	INVALID_VALUE_RATE_LIMIT = 0.03		# expected (init block): 1/44 = 0.023
+	INVALID_VALUE_RATE_LIMIT = 0.02		# expected (init block): 1/51 = 0.019
 	MINIMUM_COUNT = 500
 	
 	# ++++++++++++++++++++++++++
