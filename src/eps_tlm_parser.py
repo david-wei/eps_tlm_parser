@@ -21,7 +21,7 @@ class EpsTlmData:
 		SSE			= 2
 		CE			= 3
 		SOFT		= 4
-		TMP			= 5		# temporary data
+		TMP			= 254		# temporary data
 		BLOCK_INIT	= 255
 
 	# ++++++++++++++++++++++++++
@@ -50,6 +50,7 @@ class EpsTlmData:
 		PCMBATV		= 20
 		PCM5V		= 21
 		PCM3V3		= 22
+		TMP			= 254		# temporary data
 		BLOCK_INIT	= 255
 
 	# ++++++++++++++++++++++++++
@@ -71,6 +72,7 @@ class EpsTlmData:
 		TEMPERATURE3	= 13
 		CURRENT3V3		= 14
 		CURRENT5V		= 15
+		TMP				= 254		# temporary data
 		BLOCK_INIT		= 255
 
 		def physicalUnit(type):
@@ -137,6 +139,12 @@ class EpsTlmData:
 			elif type == EpsTlmData.TYPE.CURRENT3V3:	return EpsTlmData.DATATYPE.float32
 			elif type == EpsTlmData.TYPE.CURRENT5V:		return EpsTlmData.DATATYPE.float32
 			elif type == EpsTlmData.TYPE.BLOCK_INIT:	return EpsTlmData.DATATYPE.float32
+			else:										return EpsTlmData.DATATYPE.float32
+
+	# ++++++++++++++++++++++++++
+
+	def CMD(self, device, source, type):
+		return (EpsTlmData.DEVICE(device), EpsTlmData.SOURCE(source), EpsTlmData.TYPE(type))
 
 	# ++++++++++++++++++++++++++
 
@@ -172,18 +180,18 @@ class EpsTlmData:
 		(DEVICE.EPS, SOURCE.PCM3V3,		TYPE.CURRENT),
 
 		# Subsystem
-		(DEVICE.EPS, SOURCE.UHF,       TYPE.VOLTAGE),
+		(DEVICE.EPS, SOURCE.UHF,       TYPE.VOLTAGE),#23
 		(DEVICE.EPS, SOURCE.UHF,       TYPE.CURRENT),
 		(DEVICE.EPS, SOURCE.SBAND,     TYPE.VOLTAGE),
 		(DEVICE.EPS, SOURCE.SBAND,     TYPE.CURRENT),
 		(DEVICE.EPS, SOURCE.CDH,       TYPE.VOLTAGE),
-		(DEVICE.EPS, SOURCE.CDH,       TYPE.CURRENT),
+		(DEVICE.EPS, SOURCE.CDH,       TYPE.CURRENT),#28
 		(DEVICE.EPS, SOURCE.SMARD1,    TYPE.VOLTAGE),
 		(DEVICE.EPS, SOURCE.SMARD1,    TYPE.CURRENT),
 		(DEVICE.EPS, SOURCE.SMARD2,    TYPE.VOLTAGE),
 		(DEVICE.EPS, SOURCE.SMARD2,    TYPE.CURRENT),
 		(DEVICE.EPS, SOURCE.ADCS5V_1,  TYPE.VOLTAGE),
-		(DEVICE.EPS, SOURCE.ADCS5V_1,  TYPE.CURRENT),
+		(DEVICE.EPS, SOURCE.ADCS5V_1,  TYPE.CURRENT),#34
 		(DEVICE.EPS, SOURCE.ADCS5V_2,  TYPE.VOLTAGE),
 		(DEVICE.EPS, SOURCE.ADCS5V_2,  TYPE.CURRENT),
 		(DEVICE.EPS, SOURCE.ADCS3V3_1, TYPE.VOLTAGE),
@@ -191,7 +199,7 @@ class EpsTlmData:
 		(DEVICE.EPS, SOURCE.ADCS3V3_2, TYPE.VOLTAGE),
 		(DEVICE.EPS, SOURCE.ADCS3V3_2, TYPE.CURRENT),
 		(DEVICE.EPS, SOURCE.PL,	       TYPE.VOLTAGE),
-		(DEVICE.EPS, SOURCE.PL,	       TYPE.CURRENT),
+		(DEVICE.EPS, SOURCE.PL,	       TYPE.CURRENT),#43
 		(DEVICE.EPS, SOURCE.THM,       TYPE.VOLTAGE),
 		(DEVICE.EPS, SOURCE.THM,       TYPE.CURRENT),
 		
@@ -203,7 +211,10 @@ class EpsTlmData:
 		(DEVICE.BAT, SOURCE.BTTC, TYPE.HEATER_STATE2),
 		(DEVICE.BAT, SOURCE.BTTC, TYPE.TEMPERATURE),
 		(DEVICE.BAT, SOURCE.BTTC, TYPE.TEMPERATURE2),
-		(DEVICE.BAT, SOURCE.BTTC, TYPE.TEMPERATURE3)
+		(DEVICE.BAT, SOURCE.BTTC, TYPE.TEMPERATURE3),
+
+		# TMP
+		(DEVICE.TMP, SOURCE.TMP, TYPE.TMP)
 	]
 	
 	# ++++++++++++++++++++++++++
@@ -250,15 +261,13 @@ class EpsTlmData:
 
 	# ++++++++++++++++++++++++++
 
-	def commandIsValid(self, device, source, type):
-		return (EpsTlmData.DEVICE(device),
-				EpsTlmData.SOURCE(source),
-				EpsTlmData.TYPE(type)) in self.data
+	def commandIsValid(self, cmd):
+		return cmd in self.data
 
 	# ++++++++++++++++++++++++++
 	
 	def addData(self, device, source, type, time, value):
-		ret = self.commandIsValid(device, source, type)
+		ret = self.commandIsValid(self.CMD(device, source, type))
 		if ret:
 			self.data[(EpsTlmData.DEVICE(device),
 				EpsTlmData.SOURCE(source),
@@ -285,48 +294,119 @@ class EpsTlmData:
 
 	# ++++++++++++++++++++++++++
 
-	def deleteData(self):
-		for cmd in EpsTlmData.VALID_COMMANDS:
-			self.data[cmd] = list()
+	def deleteData(self, cmd):
+		self.data[cmd] = list()
 
 	# ++++++++++++++++++++++++++
 
-	def getDataIndexFromTime(self, cmd, time, boundary = "left", initIndexOffset = 0):
+	def deleteAllData(self):
+		for cmd in EpsTlmData.VALID_COMMANDS:
+			self.deleteData(cmd)
+
+	# ++++++++++++++++++++++++++
+
+	def deleteTmpData(self):
+		self.deleteData((EpsTlmData.DEVICE.TMP, EpsTlmData.SOURCE.TMP, EpsTlmData.TYPE.TMP))
+
+	# ++++++++++++++++++++++++++
+
+	def getDataIndexFromTime(self, cmd, time, iterationDirection = "ascending", initIndexOffset = 0):
 		if not self.commandIsValid(cmd): return -1
-		if boundary != "left" and boundary != "right": return -2
+		if iterationDirection != "ascending" and iterationDirection != "descending": return -2
 		if len(self.data[cmd]) == 0: return -3
 
-		if boundary == "left":
+		if iterationDirection == "ascending":
+			if initIndexOffset >= len(self.data[cmd]) - 1:
+				return initIndexOffset
 			it = initIndexOffset
-			for item in self.data[cmd]:
-				if time > item[0]:
-					return max(0, it - 1)
+			while it < len(self.data[cmd]) and time > self.data[cmd][it][0]:
 				it += 1
-		elif boundary == "right":
-			it = len(self.data[cmd]) - initIndexOffset
-			for item in reversed(self.data[cmd]):
-				if time < item[0]:
-					return min(len(self.data[cmd]), it + 1)
+			it = max(initIndexOffset + 1, min(len(self.data[cmd]) - 1, it))
+			if abs(time - self.data[cmd][it][0]) > abs(time - self.data[cmd][it - 1][0]):
+				return it - 1
+			else:
+				return it
+
+		elif iterationDirection == "descending":
+			if initIndexOffset <= 0:
+				return initIndexOffset
+			it = initIndexOffset
+			while it >= 0 and time < self.data[cmd][it][0]:
 				it -= 1
+			it = min(initIndexOffset - 1, max(0, it))
+			if abs(time - self.data[cmd][it][0]) > abs(time - self.data[cmd][it + 1][0]):
+				return it + 1
+			else:
+				return it
 
 	# ++++++++++++++++++++++++++
 
-	def calculateDerivedData(self, mode, targetCmd, primarySourceCmd, secondarySourceCmd):
-		""" modes: "+", "-", "*", "/" """
-		itPrimary = 0
-		itSecondary = 0
-		itTarget = 0
+	def calculateDerivedData(self, operator, targetCmd, primarySourceCmd, secondarySourceCmd):
+		# preparations
+		if not(targetCmd in EpsTlmData.VALID_COMMANDS and primarySourceCmd in EpsTlmData.VALID_COMMANDS and secondarySourceCmd in EpsTlmData.VALID_COMMANDS):
+			print("Invalid commands for calculating derived data")
+			return False
+		self.sortData(primarySourceCmd)
+		self.sortData(secondarySourceCmd)
 
-		tmpTime = datetime.datetime.fromtimestamp(0)
-		tmpPrimary = self.data[primarySourceCmd][0]
-		tmpSecondary = self.data[secondarySourceCmd][0]
+		# algorithm: variable definition
+		s1 = self.data[primarySourceCmd]
+		s2 = self.data[secondarySourceCmd]
+		t = self.data[targetCmd]
+		oldIndexS1 = -1
+		oldIndexS2 = -1
+		indexS1 = 0
+		indexS2 = 0
 
-		if tmpPrimary[0] < tmpSecondary[0]:
-			tmpTime = tmpPrimary[0]
-			itSecondary = self.getDataIndexFromTime(secondarySourceCmd, tmpTime, boundary = "left", initIndexOffset = itSecondary - 1)
-			tmpTarget = tmpPrimary[1] + self.data[secondarySourceCmd][itSecondary]
-			self.data[targetCmd].append((tmpTime, tmpTarget))
-			itPrimary += 1
+		# algorithm: merge
+		while indexS1 < len(s1) and indexS2 < len(s2):
+			time = s1[indexS1][0]
+			if time < s2[indexS2][0]:
+				tmpIndexS2 = self.getDataIndexFromTime(secondarySourceCmd, time, initIndexOffset = indexS2 - 1)
+				print("<", indexS1, tmpIndexS2, "vs", oldIndexS1, oldIndexS2)
+				if oldIndexS1 < indexS1 or oldIndexS2 < tmpIndexS2:
+					dt = s2[tmpIndexS2][0] - time
+					t.append((time + dt / 2, operator(s1[indexS1][1], s2[tmpIndexS2][1])))
+					oldIndexS1 = indexS1
+					oldIndexS2 = tmpIndexS2
+				indexS1 += 1
+			elif time > s2[indexS2][0]:
+				tmpIndexS1 = self.getDataIndexFromTime(primarySourceCmd, time, initIndexOffset = indexS1 - 1)
+				print(">", tmpIndexS1, indexS2, "vs", oldIndexS1, oldIndexS2)
+				time = s2[indexS2][0]
+				if oldIndexS1 < tmpIndexS1 or oldIndexS2 < indexS2:
+					dt = s1[tmpIndexS1][0] - time
+					t.append((time + dt / 2, operator(s1[tmpIndexS1][1], s2[indexS2][1])))
+					oldIndexS1 = tmpIndexS1
+					oldIndexS2 = indexS2
+				indexS2 += 1
+			else:	# time == s2[indexS2][0]
+				print("=", indexS1, indexS2, "vs", oldIndexS1, oldIndexS2)
+				if oldIndexS1 < indexS1 or oldIndexS2 < indexS2:
+					t.append((time, operator(s1[indexS1], s2[indexS2])))
+					oldIndexS1 = indexS1
+					oldIndexS2 = indexS2
+				indexS1 += 1
+				indexS2 += 1
+
+		# algorithm: append
+		if indexS1 == len(s1):
+			time = s1[-1][0]
+			indexS2 += 1
+			while indexS2 < len(s2):
+				dt = s2[indexS2][0] - time
+				t.append((s2[indexS2][0] - dt / 2, operator(s1[-1][1], s2[indexS2][1])))
+				indexS2 += 1
+		else:	# indexS2 == len(s2):
+			time = s2[-1][0]
+			indexS1 += 1
+			while indexS1 < len(s1):
+				dt = s2[indexS2][0] - time
+				t.append((s1[indexS1][0] - dt / 2, operator(s1[indexS1][1], s2[-1][1])))
+				indexS1 += 1
+
+		return True
+
 
 
 # ###############################
@@ -335,7 +415,7 @@ class EpsTlmData:
 
 class EpsTlmFileReader(EpsTlmData):
 	
-	INVALID_VALUE_RATE_LIMIT = 0.02		# expected (init block): 1/51 = 0.019
+	INVALID_VALUE_RATE_LIMIT = 0.025		# expected (init block): 1/51 = 0.019
 	MINIMUM_COUNT = 500
 	
 	# ++++++++++++++++++++++++++
@@ -466,7 +546,7 @@ class EpsTlmFileReader(EpsTlmData):
 	# ++++++++++++++++++++++++++
 
 	def writeDataToFile(self, filename, cmd):
-		if not self.commandIsValid(cmd[0].value, cmd[1].value, cmd[2].value):
+		if not self.commandIsValid(cmd):
 			print("Invalid command")
 			return False
 

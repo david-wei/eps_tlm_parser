@@ -187,7 +187,7 @@ class EpsTlmGuiApp(QWidget):
 	def resetDataDialog(self):
 		reply = QMessageBox.question(self, "Reset Data", "Are you sure you want to reset the data?", QMessageBox.Yes, QMessageBox.No)
 		if reply == QMessageBox.Yes:
-			self.eps.deleteData()
+			self.eps.deleteAllData()
 			self.resetTimeSliders()
 
 
