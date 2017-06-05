@@ -21,6 +21,7 @@ class EpsTlmData:
 		SSE			= 2
 		CE			= 3
 		SOFT		= 4
+		DER			= 128		# derived data
 		TMP			= 254		# temporary data
 		BLOCK_INIT	= 255
 
@@ -72,6 +73,9 @@ class EpsTlmData:
 		TEMPERATURE3	= 13
 		CURRENT3V3		= 14
 		CURRENT5V		= 15
+		POWER			= 16		# derived data
+		POWERB			= 17		# derived data
+		TMP_2			= 253		# temporary data
 		TMP				= 254		# temporary data
 		BLOCK_INIT		= 255
 
@@ -86,6 +90,8 @@ class EpsTlmData:
 				return "count"
 			elif type == EpsTlmData.TYPE.HEATER_STATE1 or type == EpsTlmData.TYPE.HEATER_STATE2:
 				return "on/off"
+			elif type == EpsTlmData.TYPE.POWER or type == EpsTlmData.TYPE.POWERB:
+				return "mW"
 			else:
 				return "1"
 		
@@ -180,18 +186,18 @@ class EpsTlmData:
 		(DEVICE.EPS, SOURCE.PCM3V3,		TYPE.CURRENT),
 
 		# Subsystem
-		(DEVICE.EPS, SOURCE.UHF,       TYPE.VOLTAGE),#23
+		(DEVICE.EPS, SOURCE.UHF,       TYPE.VOLTAGE),
 		(DEVICE.EPS, SOURCE.UHF,       TYPE.CURRENT),
 		(DEVICE.EPS, SOURCE.SBAND,     TYPE.VOLTAGE),
 		(DEVICE.EPS, SOURCE.SBAND,     TYPE.CURRENT),
 		(DEVICE.EPS, SOURCE.CDH,       TYPE.VOLTAGE),
-		(DEVICE.EPS, SOURCE.CDH,       TYPE.CURRENT),#28
+		(DEVICE.EPS, SOURCE.CDH,       TYPE.CURRENT),
 		(DEVICE.EPS, SOURCE.SMARD1,    TYPE.VOLTAGE),
 		(DEVICE.EPS, SOURCE.SMARD1,    TYPE.CURRENT),
 		(DEVICE.EPS, SOURCE.SMARD2,    TYPE.VOLTAGE),
 		(DEVICE.EPS, SOURCE.SMARD2,    TYPE.CURRENT),
 		(DEVICE.EPS, SOURCE.ADCS5V_1,  TYPE.VOLTAGE),
-		(DEVICE.EPS, SOURCE.ADCS5V_1,  TYPE.CURRENT),#34
+		(DEVICE.EPS, SOURCE.ADCS5V_1,  TYPE.CURRENT),
 		(DEVICE.EPS, SOURCE.ADCS5V_2,  TYPE.VOLTAGE),
 		(DEVICE.EPS, SOURCE.ADCS5V_2,  TYPE.CURRENT),
 		(DEVICE.EPS, SOURCE.ADCS3V3_1, TYPE.VOLTAGE),
@@ -199,7 +205,7 @@ class EpsTlmData:
 		(DEVICE.EPS, SOURCE.ADCS3V3_2, TYPE.VOLTAGE),
 		(DEVICE.EPS, SOURCE.ADCS3V3_2, TYPE.CURRENT),
 		(DEVICE.EPS, SOURCE.PL,	       TYPE.VOLTAGE),
-		(DEVICE.EPS, SOURCE.PL,	       TYPE.CURRENT),#43
+		(DEVICE.EPS, SOURCE.PL,	       TYPE.CURRENT),
 		(DEVICE.EPS, SOURCE.THM,       TYPE.VOLTAGE),
 		(DEVICE.EPS, SOURCE.THM,       TYPE.CURRENT),
 		
@@ -211,10 +217,7 @@ class EpsTlmData:
 		(DEVICE.BAT, SOURCE.BTTC, TYPE.HEATER_STATE2),
 		(DEVICE.BAT, SOURCE.BTTC, TYPE.TEMPERATURE),
 		(DEVICE.BAT, SOURCE.BTTC, TYPE.TEMPERATURE2),
-		(DEVICE.BAT, SOURCE.BTTC, TYPE.TEMPERATURE3),
-
-		# TMP
-		(DEVICE.TMP, SOURCE.TMP, TYPE.TMP)
+		(DEVICE.BAT, SOURCE.BTTC, TYPE.TEMPERATURE3)
 	]
 	
 	# ++++++++++++++++++++++++++
@@ -307,6 +310,7 @@ class EpsTlmData:
 
 	def deleteTmpData(self):
 		self.deleteData((EpsTlmData.DEVICE.TMP, EpsTlmData.SOURCE.TMP, EpsTlmData.TYPE.TMP))
+		self.deleteData((EpsTlmData.DEVICE.TMP, EpsTlmData.SOURCE.TMP, EpsTlmData.TYPE.TMP_2))
 
 	# ++++++++++++++++++++++++++
 
@@ -341,10 +345,14 @@ class EpsTlmData:
 
 	# ++++++++++++++++++++++++++
 
-	def calculateDerivedData(self, operator, targetCmd, primarySourceCmd, secondarySourceCmd):
+	def calculateDerivedData(self, operator, targetCmd, primarySourceCmd, secondarySourceCmd, checkValidity = True):
 		# preparations
-		if not(targetCmd in EpsTlmData.VALID_COMMANDS and primarySourceCmd in EpsTlmData.VALID_COMMANDS and secondarySourceCmd in EpsTlmData.VALID_COMMANDS):
-			print("Invalid commands for calculating derived data")
+		if checkValidity:
+			if not(targetCmd in EpsTlmData.VALID_COMMANDS and primarySourceCmd in EpsTlmData.VALID_COMMANDS and secondarySourceCmd in EpsTlmData.VALID_COMMANDS):
+				print("Invalid commands for calculating derived data")
+				return False
+		if len(self.data[primarySourceCmd]) == 0 or len(self.data[secondarySourceCmd]) == 0:
+			print("Empty data list")
 			return False
 		self.sortData(primarySourceCmd)
 		self.sortData(secondarySourceCmd)
@@ -363,7 +371,6 @@ class EpsTlmData:
 			time = s1[indexS1][0]
 			if time < s2[indexS2][0]:
 				tmpIndexS2 = self.getDataIndexFromTime(secondarySourceCmd, time, initIndexOffset = indexS2 - 1)
-				print("<", indexS1, tmpIndexS2, "vs", oldIndexS1, oldIndexS2)
 				if oldIndexS1 < indexS1 or oldIndexS2 < tmpIndexS2:
 					dt = s2[tmpIndexS2][0] - time
 					t.append((time + dt / 2, operator(s1[indexS1][1], s2[tmpIndexS2][1])))
@@ -372,7 +379,6 @@ class EpsTlmData:
 				indexS1 += 1
 			elif time > s2[indexS2][0]:
 				tmpIndexS1 = self.getDataIndexFromTime(primarySourceCmd, time, initIndexOffset = indexS1 - 1)
-				print(">", tmpIndexS1, indexS2, "vs", oldIndexS1, oldIndexS2)
 				time = s2[indexS2][0]
 				if oldIndexS1 < tmpIndexS1 or oldIndexS2 < indexS2:
 					dt = s1[tmpIndexS1][0] - time
@@ -381,9 +387,8 @@ class EpsTlmData:
 					oldIndexS2 = indexS2
 				indexS2 += 1
 			else:	# time == s2[indexS2][0]
-				print("=", indexS1, indexS2, "vs", oldIndexS1, oldIndexS2)
 				if oldIndexS1 < indexS1 or oldIndexS2 < indexS2:
-					t.append((time, operator(s1[indexS1], s2[indexS2])))
+					t.append((time, operator(s1[indexS1][1], s2[indexS2][1])))
 					oldIndexS1 = indexS1
 					oldIndexS2 = indexS2
 				indexS1 += 1

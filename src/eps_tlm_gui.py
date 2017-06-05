@@ -47,6 +47,7 @@ class EpsTlmGuiApp(QWidget):
 		self.layout = QVBoxLayout()
 
 		# Data Treeview
+		self.__setupDerivedData()
 		self.dataSelectionTreeview = QTreeView()
 		self.dataSelectionTreeview.setRootIsDecorated(False)
 		self.dataSelectionTreeview.setAlternatingRowColors(True)
@@ -75,6 +76,7 @@ class EpsTlmGuiApp(QWidget):
 		# Helper Widgets
 		self.loadingBar = QProgressBar()
 		self.loadingBar.setValue(50)
+		self.loadingBar.setTextVisible(True)
 		self.layout.addWidget(self.loadingBar)
 
 		# Plotting Widgets
@@ -120,6 +122,17 @@ class EpsTlmGuiApp(QWidget):
 		self.timeSliderEnd.valueChanged.connect(self.updateTimeEnd)
 
 
+	def __setupDerivedData(self):
+		EpsTlmData.VALID_COMMANDS.insert(2, (EpsTlmData.DEVICE.DER, EpsTlmData.SOURCE.BCR1, EpsTlmData.TYPE.POWER))
+		EpsTlmData.VALID_COMMANDS.insert(5, (EpsTlmData.DEVICE.DER, EpsTlmData.SOURCE.BCR2, EpsTlmData.TYPE.POWER))
+		EpsTlmData.VALID_COMMANDS.insert(8, (EpsTlmData.DEVICE.DER, EpsTlmData.SOURCE.BCR3, EpsTlmData.TYPE.POWER))
+		EpsTlmData.VALID_COMMANDS.insert(10, (EpsTlmData.DEVICE.DER, EpsTlmData.SOURCE.BCR3, EpsTlmData.TYPE.POWERB))
+		self.eps.data[(EpsTlmData.DEVICE.DER, EpsTlmData.SOURCE.BCR1, EpsTlmData.TYPE.POWER)] = list()
+		self.eps.data[(EpsTlmData.DEVICE.DER, EpsTlmData.SOURCE.BCR2, EpsTlmData.TYPE.POWER)] = list()
+		self.eps.data[(EpsTlmData.DEVICE.DER, EpsTlmData.SOURCE.BCR3, EpsTlmData.TYPE.POWER)] = list()
+		self.eps.data[(EpsTlmData.DEVICE.DER, EpsTlmData.SOURCE.BCR3, EpsTlmData.TYPE.POWERB)] = list()
+
+
 	def __setupDataSelection(self):
 		dataSelectionModel = QStandardItemModel(0, 3, self)
 		dataSelectionModel.setHeaderData(self.DEVICE, Qt.Horizontal, "Device")
@@ -151,10 +164,13 @@ class EpsTlmGuiApp(QWidget):
 		if fileNames and self.status == Status.OK:
 			self.status = Status.BUSY
 			self.lastDirectory = os.path.dirname(fileNames[0])
+			self.loadingBar.setFormat(" Loading files: %p%")
 			self.loadingBar.setVisible(True)
 			self.eps.setFile(fileNames)
 			self.eps.readFileList()
 			self.eps.sortAllData()
+			self.loadingBar.setFormat(" Calculating derived data: %p%")
+			self.calculateDerivedData()
 			self.loadingBar.setVisible(False)
 			self.status = Status.OK
 
@@ -164,6 +180,7 @@ class EpsTlmGuiApp(QWidget):
 		if fileNames and self.status == Status.OK:
 			self.status = Status.BUSY
 			self.lastDirectory = os.path.dirname(fileNames[0])
+			self.loadingBar.setFormat(" Converting files: %p%")
 			self.loadingBar.setVisible(True)
 			tmpEps = EpsTlmFileReader(mode = "o")
 			tmpEps.setProgressCallback(self.updateLoadingBar)
@@ -178,6 +195,7 @@ class EpsTlmGuiApp(QWidget):
 		if fileName and self.status == Status.OK:
 			self.status = Status.BUSY
 			self.lastDirectory = os.path.dirname(fileName)
+			self.loadingBar.setFormat("Saving data: %p%")
 			self.loadingBar.setVisible(True)
 			self.eps.writeAllDataToFile(fileName)
 			self.loadingBar.setVisible(False)
@@ -189,6 +207,97 @@ class EpsTlmGuiApp(QWidget):
 		if reply == QMessageBox.Yes:
 			self.eps.deleteAllData()
 			self.resetTimeSliders()
+			
+
+	# ++++++++++++++++++++++++++++++
+	# Data Calculation
+	# ++++++++++++++++++++++++++++++
+
+	def calculateDerivedData(self):
+		progressSteps = 4 + 3 + 4	# 4x BCR, (2+1)x BATV, (3+1)x 5V
+		progress = 0.0
+		self.updateLoadingBar(progress / progressSteps)
+
+		# BCR
+		self.eps.deleteData((EpsTlmData.DEVICE.DER, EpsTlmData.SOURCE.BCR1, EpsTlmData.TYPE.POWER))
+		self.eps.calculateDerivedData(operator.mul,
+					(EpsTlmData.DEVICE.DER, EpsTlmData.SOURCE.BCR1, EpsTlmData.TYPE.POWER),
+					(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.BCR1, EpsTlmData.TYPE.VOLTAGE),
+					(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.BCR1, EpsTlmData.TYPE.CURRENT))
+		progress += 1
+		self.updateLoadingBar(progress / progressSteps)
+		self.eps.deleteData((EpsTlmData.DEVICE.DER, EpsTlmData.SOURCE.BCR2, EpsTlmData.TYPE.POWER))
+		self.eps.calculateDerivedData(operator.mul,
+					(EpsTlmData.DEVICE.DER, EpsTlmData.SOURCE.BCR2, EpsTlmData.TYPE.POWER),
+					(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.BCR2, EpsTlmData.TYPE.VOLTAGE),
+					(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.BCR2, EpsTlmData.TYPE.CURRENT))
+		progress += 1
+		self.updateLoadingBar(progress / progressSteps)
+		self.eps.deleteData((EpsTlmData.DEVICE.DER, EpsTlmData.SOURCE.BCR3, EpsTlmData.TYPE.POWER))
+		self.eps.calculateDerivedData(operator.mul,
+					(EpsTlmData.DEVICE.DER, EpsTlmData.SOURCE.BCR3, EpsTlmData.TYPE.POWER),
+					(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.BCR3, EpsTlmData.TYPE.VOLTAGE),
+					(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.BCR3, EpsTlmData.TYPE.CURRENT))
+		progress += 1
+		self.updateLoadingBar(progress / progressSteps)
+		self.eps.deleteData((EpsTlmData.DEVICE.DER, EpsTlmData.SOURCE.BCR3, EpsTlmData.TYPE.POWERB))
+		self.eps.calculateDerivedData(operator.mul,
+					(EpsTlmData.DEVICE.DER, EpsTlmData.SOURCE.BCR3, EpsTlmData.TYPE.POWERB),
+					(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.BCR3, EpsTlmData.TYPE.VOLTAGE),
+					(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.BCR3, EpsTlmData.TYPE.CURRENTB))
+		progress += 1
+		self.updateLoadingBar(progress / progressSteps)
+
+		# BATV
+		self.eps.deleteData((EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.UHF, EpsTlmData.TYPE.VOLTAGE))
+		self.eps.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.UHF, EpsTlmData.TYPE.VOLTAGE)] = self.eps.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.PCMBATV, EpsTlmData.TYPE.VOLTAGE)]
+		progress += 1
+		self.updateLoadingBar(progress / progressSteps)
+		self.eps.deleteTmpData()
+		self.eps.calculateDerivedData(operator.add,
+					(EpsTlmData.DEVICE.TMP, EpsTlmData.SOURCE.TMP, EpsTlmData.TYPE.TMP),
+					(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.SMARD1, EpsTlmData.TYPE.CURRENT),
+					(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.SMARD2, EpsTlmData.TYPE.CURRENT),
+					checkValidity = False)
+		progress += 1
+		self.updateLoadingBar(progress / progressSteps)
+		self.eps.deleteData((EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.UHF, EpsTlmData.TYPE.CURRENT))
+		self.eps.calculateDerivedData(operator.sub,
+					(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.UHF, EpsTlmData.TYPE.CURRENT),
+					(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.PCMBATV, EpsTlmData.TYPE.CURRENT),
+					(EpsTlmData.DEVICE.TMP, EpsTlmData.SOURCE.TMP, EpsTlmData.TYPE.TMP),
+					checkValidity = False)
+		progress += 1
+		self.updateLoadingBar(progress / progressSteps)
+
+		# 5V
+		self.eps.deleteData((EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.CDH, EpsTlmData.TYPE.VOLTAGE))
+		self.eps.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.CDH, EpsTlmData.TYPE.VOLTAGE)] = self.eps.data[(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.PCM5V, EpsTlmData.TYPE.VOLTAGE)]
+		progress += 1
+		self.updateLoadingBar(progress / progressSteps)
+		self.eps.deleteTmpData()
+		self.eps.calculateDerivedData(operator.add,
+					(EpsTlmData.DEVICE.TMP, EpsTlmData.SOURCE.TMP, EpsTlmData.TYPE.TMP),
+					(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.ADCS5V_1, EpsTlmData.TYPE.CURRENT),
+					(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.ADCS5V_2, EpsTlmData.TYPE.CURRENT),
+					checkValidity = False)
+		progress += 1
+		self.updateLoadingBar(progress / progressSteps)
+		self.eps.calculateDerivedData(operator.add,
+					(EpsTlmData.DEVICE.TMP, EpsTlmData.SOURCE.TMP, EpsTlmData.TYPE.TMP_2),
+					(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.THM, EpsTlmData.TYPE.CURRENT),
+					(EpsTlmData.DEVICE.TMP, EpsTlmData.SOURCE.TMP, EpsTlmData.TYPE.TMP),
+					checkValidity = False)
+		progress += 1
+		self.updateLoadingBar(progress / progressSteps)
+		self.eps.deleteData((EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.CDH, EpsTlmData.TYPE.CURRENT))
+		self.eps.calculateDerivedData(operator.sub,
+					(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.CDH, EpsTlmData.TYPE.CURRENT),
+					(EpsTlmData.DEVICE.EPS, EpsTlmData.SOURCE.PCM5V, EpsTlmData.TYPE.CURRENT),
+					(EpsTlmData.DEVICE.TMP, EpsTlmData.SOURCE.TMP, EpsTlmData.TYPE.TMP_2),
+					checkValidity = False)
+		progress += 1
+		self.updateLoadingBar(progress / progressSteps)
 
 
 	# ++++++++++++++++++++++++++++++
