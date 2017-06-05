@@ -316,9 +316,17 @@ class EpsTlmData:
 		itPrimary = 0
 		itSecondary = 0
 		itTarget = 0
-		itTime = datetime.datetime.fromtimestamp(0)
 
-		
+		tmpTime = datetime.datetime.fromtimestamp(0)
+		tmpPrimary = self.data[primarySourceCmd][0]
+		tmpSecondary = self.data[secondarySourceCmd][0]
+
+		if tmpPrimary[0] < tmpSecondary[0]:
+			tmpTime = tmpPrimary[0]
+			itSecondary = self.getDataIndexFromTime(secondarySourceCmd, tmpTime, boundary = "left", initIndexOffset = itSecondary - 1)
+			tmpTarget = tmpPrimary[1] + self.data[secondarySourceCmd][itSecondary]
+			self.data[targetCmd].append((tmpTime, tmpTarget))
+			itPrimary += 1
 
 
 # ###############################
