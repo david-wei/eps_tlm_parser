@@ -411,5 +411,7 @@ if __name__ == "__main__":
 		wnd.eps.setFile(filename)
 		if not wnd.eps.readFile():
 			print("File " + filename + " could not be read")
+		else:
+			wnd.calculateDerivedData()
 
 	sys.exit(app.exec_())
