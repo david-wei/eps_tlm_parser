@@ -2,9 +2,15 @@
 
 import enum
 import struct
+import sys
 
 from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
 
+
+# ##############################
+# Beacon Parser
+# ##############################
 
 class EpsBeaconData:
 
@@ -88,10 +94,13 @@ class EpsBeaconData:
 		return ret
 
 	def setRawBeacon(self, raw):
-		self.rawBeacon = bytes([int(byte) for byte in raw.split(" ")])
-		if len(self.rawBeacon) == self.byteSize:
-			return True
-		else:
+		try:
+			self.rawBeacon = bytes([int(byte) for byte in raw.split(" ")])
+			if len(self.rawBeacon) == self.byteSize:
+				return True
+			else:
+				return False
+		except ValueError:
 			return False
 
 	def parseBeacon(self):
@@ -110,9 +119,97 @@ class EpsBeaconData:
 			dataOffset += 1
 			byteOffset += EpsBeaconData.VOL.bytecount()
 
+			
+# ##############################
+# Beacon Widget
+# ##############################
 
-
-class EpsBeaconWidget(QWidget):
+class EpsBeaconWidget(QWidget, EpsBeaconData):
 
 	def __init__(self):
 		QWidget.__init__(self)
+		self.setGeometry(10, 40, 300, 700)
+		self.setWindowTitle("EPS Beacon Reader")
+		self.inputField = QPlainTextEdit()
+		self.inputField.setPlaceholderText("Copy space separated beacon bytes here")
+		self.inputField.setMaximumHeight(100)
+		self.outputTable = QTableWidget(len(self.CUR) + len(self.RES) + len(self.VOL), 3)
+		
+		self.layout = QVBoxLayout()
+		self.layout.addWidget(self.inputField)
+		self.layout.addWidget(self.outputTable)
+
+		self.__setupOutputTable()
+		self.__setupConnections()
+		
+		self.setLayout(self.layout)
+		self.setVisible(True)
+
+
+	def __setupOutputTable(self):
+		it = 0
+		for cur in self.CUR:
+			self.outputTable.setItem(it, 0, QTableWidgetItem(cur.name))
+			self.outputTable.setItem(it, 1, QTableWidgetItem("{:6d}".format(self.data[it])))
+			self.outputTable.setItem(it, 2, QTableWidgetItem(self.CUR.unit()))
+			it += 1
+		for res in self.RES:
+			self.outputTable.setItem(it, 0, QTableWidgetItem(res.name))
+			self.outputTable.setItem(it, 1, QTableWidgetItem("{:6d}".format(self.data[it])))
+			self.outputTable.setItem(it, 2, QTableWidgetItem(self.RES.unit()))
+			it += 1
+		for vol in self.VOL:
+			self.outputTable.setItem(it, 0, QTableWidgetItem(vol.name))
+			self.outputTable.setItem(it, 1, QTableWidgetItem("{:6d}".format(self.data[it])))
+			self.outputTable.setItem(it, 2, QTableWidgetItem(self.VOL.unit()))
+			it += 1
+		for i in range(it):
+			self.outputTable.setVerticalHeaderItem(i, QTableWidgetItem(""))
+			self.outputTable.verticalHeader().setSectionResizeMode(i, QHeaderView.ResizeToContents)
+		self.outputTable.setHorizontalHeaderItem(0, QTableWidgetItem("ID"))
+		self.outputTable.setHorizontalHeaderItem(1, QTableWidgetItem("Value"))
+		self.outputTable.setHorizontalHeaderItem(2, QTableWidgetItem("Unit"))
+		for i in range(3):
+			self.outputTable.horizontalHeader().setSectionResizeMode(i, QHeaderView.ResizeToContents)
+
+
+	def __setupConnections(self):
+		self.inputField.textChanged.connect(self.parse)
+
+
+	def updateOutputTable(self):
+		it = 0
+		for cur in self.CUR:
+			self.outputTable.item(it, 1).setText("{:6d}".format(self.data[it]))
+			it += 1
+		for res in self.RES:
+			self.outputTable.item(it, 1).setText("{:6d}".format(self.data[it]))
+			it += 1
+		for vol in self.VOL:
+			self.outputTable.item(it, 1).setText("{:6d}".format(self.data[it]))
+			it += 1
+
+	@pyqtSlot()
+	def parse(self):
+		if not self.setRawBeacon(self.inputField.toPlainText()):
+			self.inputField.setStyleSheet("border: 1px solid red")
+			return False
+		else:
+			self.inputField.setStyleSheet("")
+			self.parseBeacon()
+			self.updateOutputTable()
+			return True
+
+
+		
+# ##############################
+# Main
+# ##############################
+
+if __name__ == "__main__":
+	print("EPS Beacon Parser GUI Application")
+	
+	app = QApplication(sys.argv)
+	wnd = EpsBeaconWidget()
+
+	sys.exit(app.exec_())

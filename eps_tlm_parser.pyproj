@@ -37,6 +37,9 @@
     <Folder Include="src\__pycache__\" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="src\eps_beacon_gui.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="src\eps_tlm_gui.py">
       <SubType>Code</SubType>
     </Compile>
