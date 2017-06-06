@@ -52,7 +52,7 @@ class EpsTlmGuiApp(QWidget):
 		self.dataSelectionTreeview.setRootIsDecorated(False)
 		self.dataSelectionTreeview.setAlternatingRowColors(True)
 		self.__setupDataSelection()
-		self.dataSelectionTreeview.setMaximumWidth(270)
+		self.dataSelectionTreeview.setMaximumWidth(290)
 		self.dataSelectionTreeview.setMinimumWidth(240)
 		self.mainLayout.addWidget(self.dataSelectionTreeview)
 		self.mainLayout.addLayout(self.layout)
