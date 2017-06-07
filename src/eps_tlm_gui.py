@@ -106,8 +106,8 @@ class EpsTlmGuiApp(QWidget):
 
 		# Beacon Widget
 		self.beaconWidget = EpsBeaconWidget()
-		self.beaconWidget.setMinimumWidth(150)
-		self.beaconWidget.setMaximumWidth(200)
+		self.beaconWidget.setMinimumWidth(190)
+		self.beaconWidget.setMaximumWidth(230)
 		self.mainLayout.addWidget(self.beaconWidget)
 
 		# Initial Visibility
