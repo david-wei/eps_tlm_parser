@@ -131,7 +131,7 @@ class EpsBeaconWidget(QWidget, EpsBeaconData):
 		self.setGeometry(10, 40, 300, 700)
 		self.setWindowTitle("EPS Beacon Reader")
 		self.inputField = QPlainTextEdit()
-		self.inputField.setPlaceholderText("Copy space separated beacon bytes here")
+		self.inputField.setPlaceholderText("Copy beacon bytes here")
 		self.inputField.setMaximumHeight(100)
 		self.outputTable = QTableWidget(len(self.CUR) + len(self.RES) + len(self.VOL), 3)
 		

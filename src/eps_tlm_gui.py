@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from eps_tlm_parser import *
+from eps_beacon_gui import *
 
 import sys
 import argparse
@@ -67,10 +68,14 @@ class EpsTlmGuiApp(QWidget):
 		self.convertFilesButton.setToolTip("Opens a dialog in which TLM files can be chosen to be converted into CSV files.")
 		self.resetDataButton = QPushButton("Reset Data")
 		self.resetDataButton.setToolTip("Removes all currently loaded data.")
+		self.showBeaconButton = QPushButton("Beacon Reader")
+		self.showBeaconButton.setToolTip("Toggle beacon reader panel.")
+		self.showBeaconButton.setCheckable(True)
 		self.controlsLayout.addWidget(self.openFilesButton)
 		self.controlsLayout.addWidget(self.saveDataButton)
 		self.controlsLayout.addWidget(self.convertFilesButton)
 		self.controlsLayout.addWidget(self.resetDataButton)
+		self.controlsLayout.addWidget(self.showBeaconButton)
 		self.layout.addLayout(self.controlsLayout)
 
 		# Helper Widgets
@@ -99,8 +104,15 @@ class EpsTlmGuiApp(QWidget):
 		self.timeLayout.addWidget(self.timeSliderEnd)
 		self.layout.addLayout(self.timeLayout)
 
+		# Beacon Widget
+		self.beaconWidget = EpsBeaconWidget()
+		self.beaconWidget.setMinimumWidth(150)
+		self.beaconWidget.setMaximumWidth(200)
+		self.mainLayout.addWidget(self.beaconWidget)
+
 		# Initial Visibility
 		self.loadingBar.setVisible(False)
+		self.beaconWidget.setVisible(False)
 		self.show()
 
 		# Connections
@@ -116,6 +128,7 @@ class EpsTlmGuiApp(QWidget):
 		self.saveDataButton.clicked.connect(self.saveDataDialog)
 		self.convertFilesButton.clicked.connect(self.convertFilesDialog)
 		self.resetDataButton.clicked.connect(self.resetDataDialog)
+		self.showBeaconButton.toggled.connect(self.toggleBeaconWidget)
 
 		self.dataSelectionTreeview.selectionModel().selectionChanged.connect(self.updateDataSelection)
 		self.timeSliderStart.valueChanged.connect(self.updateTimeStart)
@@ -207,6 +220,13 @@ class EpsTlmGuiApp(QWidget):
 		if reply == QMessageBox.Yes:
 			self.eps.deleteAllData()
 			self.resetTimeSliders()
+
+	@pyqtSlot(bool)
+	def toggleBeaconWidget(self, isChecked):
+		if isChecked:
+			self.beaconWidget.setVisible(True)
+		else:
+			self.beaconWidget.setVisible(False)
 			
 
 	# ++++++++++++++++++++++++++++++
